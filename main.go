@@ -25,12 +25,12 @@ var (
 	)
 	eximQueue = prometheus.NewDesc(
 		prometheus.BuildFQName("exim", "", "queue"),
-		"Number of messages currently in queue (exim -bpc)",
+		"Number of messages currently in queue `exim -bpc`",
 		nil, nil,
 	)
 	eximProcesses = prometheus.NewDesc(
 		prometheus.BuildFQName("exim", "daemon", "processes"),
-		"exim_process_states",
+		"Number of running exim process broken down by state (delivering, handling, etc) `exiwhat`",
 		[]string{"state"}, nil,
 	)
 	eximMessages = prometheus.NewCounterVec(
