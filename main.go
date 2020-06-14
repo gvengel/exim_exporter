@@ -12,6 +12,7 @@ import (
 	"github.com/prometheus/common/version"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"net/http"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -40,11 +41,25 @@ var (
 		},
 		[]string{"flag"},
 	)
+	eximReject = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "exim_reject_total",
+			Help: "Total number of logged reject messages",
+		},
+	)
+	eximPanic = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "exim_panic_total",
+			Help: "Total number of logged panic messages",
+		},
+	)
 )
 
 type Exporter struct {
-	logger  log.Logger
-	mainlog *string
+	mainlog   *string
+	rejectlog *string
+	paniclog  *string
+	logger    log.Logger
 }
 
 func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
@@ -111,20 +126,26 @@ func (e *Exporter) QueueSize() float64 {
 }
 
 func (e *Exporter) Start() {
-	go e.TailMain()
+	go e.TailMainLog()
+	go e.TailRejectLog()
+	go e.TailPanicLog()
 }
 
-func (e *Exporter) TailMain() bool {
+func (e *Exporter) Tail(filename string) *tail.Tail {
 	level.Info(e.logger).Log("msg", "Opening mainlog")
-	t, err := tail.TailFile(*e.mainlog, tail.Config{
+	t, err := tail.TailFile(filename, tail.Config{
 		Follow:    true,
 		MustExist: true,
 	})
 	if err != nil {
-		level.Error(e.logger).Log(err)
-		return false
+		level.Error(e.logger).Log("msg", "Unable to open log", "err", err)
+		os.Exit(1)
 	}
+	return t
+}
 
+func (e *Exporter) TailMainLog() {
+	t := e.Tail(*e.mainlog)
 	for line := range t.Lines {
 		level.Debug(e.logger).Log("msg", line.Text)
 		parts := strings.SplitN(line.Text, " ", 5)
@@ -153,17 +174,36 @@ func (e *Exporter) TailMain() bool {
 			eximMessages.With(prometheus.Labels{"flag": "completed"}).Inc()
 		}
 	}
-	return true
+}
+
+func (e *Exporter) TailRejectLog() {
+	t := e.Tail(*e.rejectlog)
+	for line := range t.Lines {
+		level.Debug(e.logger).Log("msg", line.Text)
+		eximReject.Inc()
+	}
+}
+
+func (e *Exporter) TailPanicLog() {
+	t := e.Tail(*e.paniclog)
+	for line := range t.Lines {
+		level.Debug(e.logger).Log("msg", line.Text)
+		eximPanic.Inc()
+	}
 }
 
 func init() {
 	prometheus.MustRegister(version.NewCollector("exim_exporter"))
 	prometheus.MustRegister(eximMessages)
+	prometheus.MustRegister(eximReject)
+	prometheus.MustRegister(eximPanic)
 }
 
 func main() {
 	var (
-		mainlog       = kingpin.Flag("exim.mainlog", "Exim main logger file.").Default("mainlog").String()
+		mainlog       = kingpin.Flag("exim.mainlog", "Path to Exim main log file.").Default("/var/log/mainlog").String()
+		rejectlog     = kingpin.Flag("exim.rejectlog", "Path to Exim reject log file.").Default("/var/log/exim4/rejectlog").String()
+		paniclog      = kingpin.Flag("exim.paniclog", "Path to Exim panic log file.").Default("/var/log/paniclog").String()
 		listenAddress = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9350").String()
 		metricsPath   = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").String()
 	)
@@ -177,7 +217,12 @@ func main() {
 	level.Info(logger).Log("msg", "Build context", "context", version.BuildContext())
 
 	// TODO: test for queue_list_requires_admin = false
-	exporter := &Exporter{logger, mainlog}
+	exporter := &Exporter{
+		mainlog,
+		rejectlog,
+		paniclog,
+		logger,
+	}
 	exporter.Start()
 	prometheus.MustRegister(exporter)
 
