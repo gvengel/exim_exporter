@@ -11,6 +11,7 @@ import (
 	"github.com/prometheus/common/promlog/flag"
 	"github.com/prometheus/common/version"
 	"gopkg.in/alecthomas/kingpin.v2"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -69,7 +70,6 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	states := e.ProcessStates()
-	queue := e.QueueSize()
 	up := float64(0)
 	if _, ok := states["daemon"]; ok {
 		up = 1
@@ -78,7 +78,10 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	for label, value := range states {
 		ch <- prometheus.MustNewConstMetric(eximProcesses, prometheus.GaugeValue, value, label)
 	}
-	ch <- prometheus.MustNewConstMetric(eximQueue, prometheus.GaugeValue, queue)
+	queue := e.QueueSize()
+	if queue >= 0 {
+		ch <- prometheus.MustNewConstMetric(eximQueue, prometheus.GaugeValue, queue)
+	}
 }
 
 func (e *Exporter) ProcessStates() map[string]float64 {
@@ -114,12 +117,12 @@ func (e *Exporter) QueueSize() float64 {
 	level.Debug(e.logger).Log("msg", "Running exim -bpc")
 	out, err := exec.Command("exim", "-bpc").Output()
 	if err != nil {
-		level.Error(e.logger).Log("msg", err)
+		level.Error(e.logger).Log("msg", "Error running exim", "err", err)
 		return -1
 	}
 	value, err := strconv.ParseFloat(strings.TrimSpace(string(out)), 64)
 	if err != nil {
-		level.Error(e.logger).Log("msg", err)
+		level.Error(e.logger).Log("msg", "Error parsing queue size", "err", err)
 		return -1
 	}
 	return value
@@ -132,10 +135,12 @@ func (e *Exporter) Start() {
 }
 
 func (e *Exporter) Tail(filename string) *tail.Tail {
-	level.Info(e.logger).Log("msg", "Opening mainlog")
+	level.Info(e.logger).Log("msg", "Opening log", "filename", filename)
 	t, err := tail.TailFile(filename, tail.Config{
-		Follow:    true,
+		Location:  &tail.SeekInfo{Whence: io.SeekEnd},
+		ReOpen:    true,
 		MustExist: true,
+		Follow:    true,
 	})
 	if err != nil {
 		level.Error(e.logger).Log("msg", "Unable to open log", "err", err)
@@ -201,11 +206,11 @@ func init() {
 
 func main() {
 	var (
-		mainlog       = kingpin.Flag("exim.mainlog", "Path to Exim main log file.").Default("/var/log/mainlog").String()
-		rejectlog     = kingpin.Flag("exim.rejectlog", "Path to Exim reject log file.").Default("/var/log/exim4/rejectlog").String()
-		paniclog      = kingpin.Flag("exim.paniclog", "Path to Exim panic log file.").Default("/var/log/paniclog").String()
-		listenAddress = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9350").String()
-		metricsPath   = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").String()
+		mainlog       = kingpin.Flag("exim.mainlog", "Path to Exim main log file.").Default("/var/log/exim4/mainlog").Envar("EXIM_MAINLOG").String()
+		rejectlog     = kingpin.Flag("exim.rejectlog", "Path to Exim reject log file.").Default("/var/log/exim4/rejectlog").Envar("EXIM_REJECTLOG").String()
+		paniclog      = kingpin.Flag("exim.paniclog", "Path to Exim panic log file.").Default("/var/log/exim4/paniclog").Envar("EXIM_PANICLOG").String()
+		listenAddress = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9350").Envar("WEB_LISTEN_ADDRESS").String()
+		metricsPath   = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").Envar("WEB_TELEMETRY_PATH").String()
 	)
 	promlogConfig := &promlog.Config{}
 	flag.AddFlags(kingpin.CommandLine, promlogConfig)
@@ -217,12 +222,14 @@ func main() {
 	level.Info(logger).Log("msg", "Build context", "context", version.BuildContext())
 
 	// TODO: test for queue_list_requires_admin = false
+
 	exporter := &Exporter{
 		mainlog,
 		rejectlog,
 		paniclog,
 		logger,
 	}
+	exporter.QueueSize()
 	exporter.Start()
 	prometheus.MustRegister(exporter)
 
