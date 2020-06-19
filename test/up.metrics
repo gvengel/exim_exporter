@@ -1,0 +1,12 @@
+# HELP exim_daemon_processes Number of running exim process broken down by state (delivering, handling, etc) `exiwhat`
+# TYPE exim_daemon_processes gauge
+exim_daemon_processes{state="daemon"} 2
+exim_daemon_processes{state="delivering"} 3
+exim_daemon_processes{state="handling"} 1
+exim_daemon_processes{state="running"} 1
+# HELP exim_queue Number of messages currently in queue `exim -bpc`
+# TYPE exim_queue gauge
+exim_queue 10
+# HELP exim_up Whether or not the main exim daemon is running
+# TYPE exim_up gauge
+exim_up 1

@@ -56,6 +56,9 @@ var (
 	)
 )
 
+// map exec.Command to a global we can override in tests
+var execCommand = exec.Command
+
 type Exporter struct {
 	mainlog   *string
 	rejectlog *string
@@ -65,6 +68,7 @@ type Exporter struct {
 
 func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- eximUp
+	ch <- eximQueue
 	ch <- eximProcesses
 }
 
@@ -87,7 +91,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 func (e *Exporter) ProcessStates() map[string]float64 {
 	level.Debug(e.logger).Log("msg", "Running exiwhat")
 	var states = map[string]float64{}
-	cmd := exec.Command("exiwhat")
+	cmd := execCommand("exiwhat")
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		level.Error(e.logger).Log("msg", err)
@@ -100,6 +104,9 @@ func (e *Exporter) ProcessStates() map[string]float64 {
 	s := bufio.NewScanner(stdout)
 	for s.Scan() {
 		line := strings.TrimSpace(s.Text())
+		if line == "No exim process data" {
+			return map[string]float64{}
+		}
 		parts := strings.SplitN(line, " ", 3)
 		if len(parts) < 2 {
 			continue
@@ -115,7 +122,7 @@ func (e *Exporter) ProcessStates() map[string]float64 {
 
 func (e *Exporter) QueueSize() float64 {
 	level.Debug(e.logger).Log("msg", "Running exim -bpc")
-	out, err := exec.Command("exim", "-bpc").Output()
+	out, err := execCommand("exim", "-bpc").Output()
 	if err != nil {
 		level.Error(e.logger).Log("msg", "Error running exim", "err", err)
 		return -1
