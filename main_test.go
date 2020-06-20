@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/prometheus/common/promlog"
@@ -8,6 +9,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"testing"
 )
@@ -18,8 +20,46 @@ func CreateFiles(names ...string) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		fh.Close()
+		if err := fh.Close(); err != nil {
+			log.Fatal(err)
+		}
 	}
+}
+
+func mockCommand(test string, env ...string) func(command string, args ...string) *exec.Cmd {
+	return func(command string, args ...string) *exec.Cmd {
+		cs := []string{"-test.run=TestHelperProcess", "--", command}
+		cs = append(cs, args...)
+		cmd := exec.Command(os.Args[0], cs...)
+		cmd.Env = append(env, "GO_WANT_HELPER_PROCESS=1", "MOCK_COMMAND_TEST_CASE="+test)
+		return cmd
+	}
+}
+
+func TestHelperProcess(t *testing.T) {
+	if _, ok := os.LookupEnv("GO_WANT_HELPER_PROCESS"); !ok {
+		return
+	}
+	tc, ok := os.LookupEnv("MOCK_COMMAND_TEST_CASE")
+	if !ok {
+		return
+	}
+	prog := ""
+	for i, arg := range os.Args {
+		if arg == "--" {
+			prog = os.Args[i+1]
+			break
+		}
+	}
+	if prog == "" {
+		log.Fatal("Unable to parse program name from command line.")
+	}
+	outBytes, err := ioutil.ReadFile(path.Join("test", tc, prog+".output"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Print(string(outBytes))
+	os.Exit(0)
 }
 
 func TestMetrics(t *testing.T) {
@@ -43,13 +83,12 @@ func TestMetrics(t *testing.T) {
 	}
 	exporter.Start()
 	prometheus.MustRegister(exporter)
+
 	testCases := []string{"down", "up"}
 	for _, tc := range testCases {
 		t.Run(tc, func(t *testing.T) {
-			execCommand = func(name string, arg ...string) *exec.Cmd {
-				return exec.Command("test/" + name + "." + tc + ".sh")
-			}
-			metrics, err := os.Open("test/" + tc + ".metrics")
+			execCommand = mockCommand(tc)
+			metrics, err := os.Open(path.Join("test", tc, "metrics"))
 			if err != nil {
 				t.Fatalf("Error opening test metrics")
 			}
