@@ -60,10 +60,19 @@ var (
 var execCommand = exec.Command
 
 type Exporter struct {
-	mainlog   *string
-	rejectlog *string
-	paniclog  *string
+	mainlog   string
+	rejectlog string
+	paniclog  string
 	logger    log.Logger
+}
+
+func NewExporter(mainlog string, rejectlog string, paniclog string, logger log.Logger) *Exporter {
+	return &Exporter{
+		mainlog,
+		rejectlog,
+		paniclog,
+		logger,
+	}
 }
 
 func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
@@ -157,9 +166,9 @@ func (e *Exporter) Tail(filename string) *tail.Tail {
 }
 
 func (e *Exporter) TailMainLog() {
-	t := e.Tail(*e.mainlog)
+	t := e.Tail(e.mainlog)
 	for line := range t.Lines {
-		level.Debug(e.logger).Log("msg", line.Text)
+		level.Debug(e.logger).Log("file", "mainlong", "msg", line.Text)
 		parts := strings.SplitN(line.Text, " ", 5)
 		if len(parts) < 3 {
 			continue
@@ -189,17 +198,17 @@ func (e *Exporter) TailMainLog() {
 }
 
 func (e *Exporter) TailRejectLog() {
-	t := e.Tail(*e.rejectlog)
+	t := e.Tail(e.rejectlog)
 	for line := range t.Lines {
-		level.Debug(e.logger).Log("msg", line.Text)
+		level.Debug(e.logger).Log("file", "rejectlog", "msg", line.Text)
 		eximReject.Inc()
 	}
 }
 
 func (e *Exporter) TailPanicLog() {
-	t := e.Tail(*e.paniclog)
+	t := e.Tail(e.paniclog)
 	for line := range t.Lines {
-		level.Debug(e.logger).Log("msg", line.Text)
+		level.Debug(e.logger).Log("file", "paniclog", "msg", line.Text)
 		eximPanic.Inc()
 	}
 }
@@ -228,14 +237,12 @@ func main() {
 	level.Info(logger).Log("msg", "Starting exim exporter", "version", version.Info())
 	level.Info(logger).Log("msg", "Build context", "context", version.BuildContext())
 
-	// TODO: test for queue_list_requires_admin = false
-
-	exporter := &Exporter{
-		mainlog,
-		rejectlog,
-		paniclog,
+	exporter := NewExporter(
+		*mainlog,
+		*rejectlog,
+		*paniclog,
 		logger,
-	}
+	)
 	exporter.QueueSize()
 	exporter.Start()
 	prometheus.MustRegister(exporter)
