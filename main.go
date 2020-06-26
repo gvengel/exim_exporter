@@ -80,11 +80,11 @@ var (
 		for _, p := range processes {
 			cmdline, err := p.CmdlineSlice()
 			if err != nil {
-				return nil, err
+				continue
 			}
 			ppid, err := p.Ppid()
 			if err != nil {
-				return nil, err
+				continue
 			}
 			result = append(result, &Process{cmdline, ppid})
 		}
@@ -142,7 +142,7 @@ func (e *Exporter) ProcessStates() map[string]float64 {
 		return states
 	}
 	for _, p := range processes {
-		if path.Base(p.cmdline[0]) != e.eximBin {
+		if len(p.cmdline) < 1 || path.Base(p.cmdline[0]) != e.eximBin {
 			continue
 		}
 		if len(p.cmdline) < 2 {
