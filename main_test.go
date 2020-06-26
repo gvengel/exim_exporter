@@ -104,6 +104,7 @@ func TestMetrics(t *testing.T) {
 		mainlog.Name(),
 		rejectlog.Name(),
 		paniclog.Name(),
+		"exim4",
 		logger,
 	)
 	exporter.Start()
@@ -115,11 +116,28 @@ func TestMetrics(t *testing.T) {
 		}
 	}
 
-	defer func() { execCommand = exec.Command }()
-
+	getProcesses = func() ([]*Process, error) {
+		return []*Process{
+			{[]string{"/bin/bash", "-x"}, 1},
+		}, nil
+	}
 	t.Run("down", func(t *testing.T) {
 		collectAndCompareTestCase("down", registry, t)
 	})
+	getProcesses = func() ([]*Process, error) {
+		return []*Process{
+			{[]string{"/bin/bash", "-x"}, 7},
+			{[]string{"/usr/sbin/exim4"}, 2202},
+			{[]string{"/usr/sbin/exim4", "-q30m"}, 2203},
+			{[]string{"/usr/sbin/exim4", "-bd"}, 1},
+			{[]string{"/usr/sbin/exim4", "-qG"}, 2211},
+			{[]string{"/usr/sbin/exim4", "-Mc", "1jofsL-0006tb-8D"}, 2309},
+			{[]string{"/usr/sbin/exim4", "-Mc", "1jofsL-0006tb-8D"}, 2315},
+			{[]string{"/usr/sbin/exim4", "-bd"}, 3147},
+			{[]string{"/usr/sbin/exim4", "-bd"}, 3148},
+			{[]string{"/usr/sbin/exim4", "-bd"}, 3149},
+		}, nil
+	}
 	t.Run("up", func(t *testing.T) {
 		collectAndCompareTestCase("up", registry, t)
 	})

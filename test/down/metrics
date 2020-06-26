@@ -1,7 +1,7 @@
 # HELP exim_panic_total Total number of logged panic messages
 # TYPE exim_panic_total counter
 exim_panic_total 0
-# HELP exim_queue Number of messages currently in queue `exim -bpc`
+# HELP exim_queue Number of messages currently in queue
 # TYPE exim_queue gauge
 exim_queue 0
 # HELP exim_reject_total Total number of logged reject messages

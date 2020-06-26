@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/hpcloud/tail"
@@ -10,11 +9,13 @@ import (
 	"github.com/prometheus/common/promlog"
 	"github.com/prometheus/common/promlog/flag"
 	"github.com/prometheus/common/version"
+	"github.com/shirou/gopsutil/process"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"io"
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"strconv"
 	"strings"
 )
@@ -27,12 +28,12 @@ var (
 	)
 	eximQueue = prometheus.NewDesc(
 		prometheus.BuildFQName("exim", "", "queue"),
-		"Number of messages currently in queue `exim -bpc`",
+		"Number of messages currently in queue",
 		nil, nil,
 	)
 	eximProcesses = prometheus.NewDesc(
 		prometheus.BuildFQName("exim", "daemon", "processes"),
-		"Number of running exim process broken down by state (delivering, handling, etc) `exiwhat`",
+		"Number of running exim process broken down by state (delivering, handling, etc)",
 		[]string{"state"}, nil,
 	)
 	eximMessages = prometheus.NewCounterVec(
@@ -56,21 +57,56 @@ var (
 	)
 )
 
-// map exec.Command to a global we can override in tests
-var execCommand = exec.Command
+var processFlags = map[string]string{
+	"-Mc": "delivering",
+	"-bd": "handling",
+	"-qG": "running",
+	// -q30m -> runner
+}
+
+type Process struct {
+	cmdline []string
+	ppid    int32
+}
+
+// map globals we can override in tests
+var (
+	getProcesses = func() ([]*Process, error) {
+		processes, err := process.Processes()
+		if err != nil {
+			return nil, err
+		}
+		result := make([]*Process, 0)
+		for _, p := range processes {
+			cmdline, err := p.CmdlineSlice()
+			if err != nil {
+				return nil, err
+			}
+			ppid, err := p.Ppid()
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, &Process{cmdline, ppid})
+		}
+		return result, nil
+	}
+	execCommand = exec.Command
+)
 
 type Exporter struct {
 	mainlog   string
 	rejectlog string
 	paniclog  string
+	eximBin   string
 	logger    log.Logger
 }
 
-func NewExporter(mainlog string, rejectlog string, paniclog string, logger log.Logger) *Exporter {
+func NewExporter(mainlog string, rejectlog string, paniclog string, eximExec string, logger log.Logger) *Exporter {
 	return &Exporter{
 		mainlog,
 		rejectlog,
 		paniclog,
+		eximExec,
 		logger,
 	}
 }
@@ -98,39 +134,34 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 }
 
 func (e *Exporter) ProcessStates() map[string]float64 {
-	level.Debug(e.logger).Log("msg", "Running exiwhat")
+	level.Debug(e.logger).Log("msg", "Reading process states")
 	var states = map[string]float64{}
-	cmd := execCommand("exiwhat")
-	stdout, err := cmd.StdoutPipe()
+	processes, err := getProcesses()
 	if err != nil {
 		level.Error(e.logger).Log("msg", err)
 		return states
 	}
-	if err := cmd.Start(); err != nil {
-		level.Error(e.logger).Log("msg", err)
-		return states
-	}
-	s := bufio.NewScanner(stdout)
-	for s.Scan() {
-		line := strings.TrimSpace(s.Text())
-		if line == "No exim process data" {
-			return map[string]float64{}
-		}
-		parts := strings.SplitN(line, " ", 3)
-		if len(parts) < 2 {
+	for _, p := range processes {
+		if path.Base(p.cmdline[0]) != e.eximBin {
 			continue
 		}
-		op := parts[1]
-		if strings.HasPrefix(op, "daemon") {
-			op = "daemon"
+		if len(p.cmdline) < 2 {
+			states["other"] += 1
+		} else if state, ok := processFlags[p.cmdline[1]]; ok {
+			if state == "handling" && p.ppid == 1 {
+				states["daemon"] += 1
+			} else {
+				states[state] += 1
+			}
+		} else {
+			states["other"] += 1
 		}
-		states[op] += 1
 	}
 	return states
 }
 
 func (e *Exporter) QueueSize() float64 {
-	level.Debug(e.logger).Log("msg", "Running exim -bpc")
+	level.Debug(e.logger).Log("msg", "Reading queue size")
 	out, err := execCommand("exim", "-bpc").Output()
 	if err != nil {
 		level.Error(e.logger).Log("msg", "Error running exim", "err", err)
@@ -225,6 +256,7 @@ func main() {
 		mainlog       = kingpin.Flag("exim.mainlog", "Path to Exim main log file.").Default("/var/log/exim4/mainlog").Envar("EXIM_MAINLOG").String()
 		rejectlog     = kingpin.Flag("exim.rejectlog", "Path to Exim reject log file.").Default("/var/log/exim4/rejectlog").Envar("EXIM_REJECTLOG").String()
 		paniclog      = kingpin.Flag("exim.paniclog", "Path to Exim panic log file.").Default("/var/log/exim4/paniclog").Envar("EXIM_PANICLOG").String()
+		eximExec      = kingpin.Flag("exim.executable", "Path to Exim daemon executable.").Default("exim4").Envar("EXIM_EXECUTABLE").String()
 		listenAddress = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9350").Envar("WEB_LISTEN_ADDRESS").String()
 		metricsPath   = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").Envar("WEB_TELEMETRY_PATH").String()
 	)
@@ -241,6 +273,7 @@ func main() {
 		*mainlog,
 		*rejectlog,
 		*paniclog,
+		*eximExec,
 		logger,
 	)
 	exporter.QueueSize()

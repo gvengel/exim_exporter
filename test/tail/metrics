@@ -1,8 +1,9 @@
-# HELP exim_daemon_processes Number of running exim process broken down by state (delivering, handling, etc) `exiwhat`
+# HELP exim_daemon_processes Number of running exim process broken down by state (delivering, handling, etc)
 # TYPE exim_daemon_processes gauge
-exim_daemon_processes{state="daemon"} 2
-exim_daemon_processes{state="delivering"} 3
-exim_daemon_processes{state="handling"} 1
+exim_daemon_processes{state="daemon"} 1
+exim_daemon_processes{state="delivering"} 2
+exim_daemon_processes{state="handling"} 3
+exim_daemon_processes{state="other"} 2
 exim_daemon_processes{state="running"} 1
 # HELP exim_messages_total Total number of logged messages broken down by flag (delivered, deferred, etc)
 # TYPE exim_messages_total counter
@@ -15,7 +16,7 @@ exim_messages_total{flag="failed"} 2
 # HELP exim_panic_total Total number of logged panic messages
 # TYPE exim_panic_total counter
 exim_panic_total 2
-# HELP exim_queue Number of messages currently in queue `exim -bpc`
+# HELP exim_queue Number of messages currently in queue
 # TYPE exim_queue gauge
 exim_queue 10
 # HELP exim_reject_total Total number of logged reject messages
