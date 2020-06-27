@@ -6,27 +6,48 @@ import (
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/prometheus/common/promlog"
 	"io/ioutil"
-	"log"
+	"math/rand"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"testing"
 )
 
-func mockCommand(test string, env ...string) func(command string, args ...string) *exec.Cmd {
-	return func(command string, args ...string) *exec.Cmd {
-		cs := []string{"-test.run=TestHelperProcess", "--", command}
-		cs = append(cs, args...)
-		cmd := exec.Command(os.Args[0], cs...)
-		cmd.Env = append(env, "GO_WANT_HELPER_PROCESS=1", "MOCK_COMMAND_TEST_CASE="+test)
-		return cmd
+func buildMockInput(inputPath string) error {
+	for h := 0; h < 62; h++ {
+		hashChar := string(BASE62[h])
+		hashPath := path.Join(inputPath, hashChar)
+		if err := os.MkdirAll(hashPath, 0755); err != nil {
+			return err
+		}
+		for i := 0; i <= h%3; i++ {
+			msgName := ""
+			for i := 0; i < 5; i++ {
+				msgName += string(BASE62[rand.Intn(62)])
+			}
+			msgName += hashChar + "-"
+			for i := 0; i < 6; i++ {
+				msgName += string(BASE62[rand.Intn(62)])
+			}
+			msgName += "-"
+			for i := 0; i < 2; i++ {
+				msgName += string(BASE62[rand.Intn(62)])
+			}
+			for _, fileType := range "HD" {
+				fileName := msgName + "-" + string(fileType)
+				fh, err := os.Create(path.Join(hashPath, fileName))
+				if err != nil {
+					return err
+				}
+				fh.Close()
+			}
+		}
 	}
+	return nil
 }
 
 func collectAndCompareTestCase(name string, gatherer prometheus.Gatherer, t *testing.T) {
-	execCommand = mockCommand(name)
-	metrics, err := os.Open(path.Join("test", name, "metrics"))
+	metrics, err := os.Open(path.Join("test", name+".metrics"))
 	if err != nil {
 		t.Fatalf("Error opening test metrics")
 	}
@@ -48,54 +69,34 @@ func appendLog(name string, file *os.File, t *testing.T) {
 	}
 }
 
-func TestHelperProcess(t *testing.T) {
-	if _, ok := os.LookupEnv("GO_WANT_HELPER_PROCESS"); !ok {
-		return
-	}
-	tc, ok := os.LookupEnv("MOCK_COMMAND_TEST_CASE")
-	if !ok {
-		return
-	}
-	prog := ""
-	for i, arg := range os.Args {
-		if arg == "--" {
-			prog = os.Args[i+1]
-			break
-		}
-	}
-	if prog == "" {
-		log.Fatal("Unable to parse program name from command line.")
-	}
-	outBytes, err := ioutil.ReadFile(path.Join("test", tc, prog+".output"))
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Print(string(outBytes))
-	os.Exit(0)
-}
-
 func TestMetrics(t *testing.T) {
 	logger := promlog.New(&promlog.Config{})
 
+	// Create a temp dir for our mock data
+	tempPath, err := ioutil.TempDir("", "exim_exporter_test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tempPath)
+	inputPath := path.Join(tempPath, "input")
+	if err := os.MkdirAll(inputPath, 0755); err != nil {
+		t.Fatal(err)
+	}
+
 	// Setup temporary log files so we can stream data into them
-	dir, err := ioutil.TempDir("", "exim_exporter_test")
+	mainlog, err := os.OpenFile(filepath.Join(tempPath, "mainlog"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		log.Fatal(err)
-	}
-	defer os.RemoveAll(dir)
-	mainlog, err := os.OpenFile(filepath.Join(dir, "mainlog"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		t.Fatal("Unable to open mainlog")
+		t.Fatal(err)
 	}
 	defer mainlog.Close()
-	rejectlog, err := os.OpenFile(filepath.Join(dir, "rejectlog"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	rejectlog, err := os.OpenFile(filepath.Join(tempPath, "rejectlog"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		t.Fatal("Unable to open mainlog")
+		t.Fatal(err)
 	}
 	defer mainlog.Close()
-	paniclog, err := os.OpenFile(filepath.Join(dir, "paniclog"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	paniclog, err := os.OpenFile(filepath.Join(tempPath, "paniclog"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		t.Fatal("Unable to open mainlog")
+		t.Fatal(err)
 	}
 	defer mainlog.Close()
 
@@ -105,10 +106,13 @@ func TestMetrics(t *testing.T) {
 		rejectlog.Name(),
 		paniclog.Name(),
 		"exim4",
+		inputPath,
 		logger,
 	)
 	exporter.Start()
-	registry.Register(exporter)
+	if err := registry.Register(exporter); err != nil {
+		t.Fatal(err)
+	}
 
 	for _, metric := range []prometheus.Collector{eximMessages, eximReject, eximPanic} {
 		if err := registry.Register(metric); err != nil {
@@ -124,6 +128,10 @@ func TestMetrics(t *testing.T) {
 	t.Run("down", func(t *testing.T) {
 		collectAndCompareTestCase("down", registry, t)
 	})
+
+	if err = buildMockInput(inputPath); err != nil {
+		t.Fatal("Unable to create mock input:", err)
+	}
 	getProcesses = func() ([]*Process, error) {
 		return []*Process{
 			{[]string{"/bin/bash", "-x"}, 7},

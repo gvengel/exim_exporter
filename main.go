@@ -12,13 +12,15 @@ import (
 	"github.com/shirou/gopsutil/process"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"io"
+	stdlog "log"
 	"net/http"
 	"os"
-	"os/exec"
 	"path"
-	"strconv"
+	"path/filepath"
 	"strings"
 )
+
+const BASE62 = "0123456789aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ"
 
 var (
 	eximUp = prometheus.NewDesc(
@@ -61,7 +63,6 @@ var processFlags = map[string]string{
 	"-Mc": "delivering",
 	"-bd": "handling",
 	"-qG": "running",
-	// -q30m -> runner
 }
 
 type Process struct {
@@ -90,7 +91,6 @@ var (
 		}
 		return result, nil
 	}
-	execCommand = exec.Command
 )
 
 type Exporter struct {
@@ -98,15 +98,17 @@ type Exporter struct {
 	rejectlog string
 	paniclog  string
 	eximBin   string
+	inputPath string
 	logger    log.Logger
 }
 
-func NewExporter(mainlog string, rejectlog string, paniclog string, eximExec string, logger log.Logger) *Exporter {
+func NewExporter(mainlog string, rejectlog string, paniclog string, eximExec string, inputPath string, logger log.Logger) *Exporter {
 	return &Exporter{
 		mainlog,
 		rejectlog,
 		paniclog,
 		eximExec,
+		inputPath,
 		logger,
 	}
 }
@@ -162,17 +164,25 @@ func (e *Exporter) ProcessStates() map[string]float64 {
 
 func (e *Exporter) QueueSize() float64 {
 	level.Debug(e.logger).Log("msg", "Reading queue size")
-	out, err := execCommand("exim", "-bpc").Output()
-	if err != nil {
-		level.Error(e.logger).Log("msg", "Error running exim", "err", err)
-		return -1
+	count := 0.0
+	for h := 0; h < 62; h++ {
+		hashPath := filepath.Join(e.inputPath, string(BASE62[h]))
+		hashDir, err := os.Open(hashPath)
+		if err != nil {
+			continue
+		}
+		messages, err := hashDir.Readdirnames(-1)
+		hashDir.Close()
+		if err != nil {
+			continue
+		}
+		for _, name := range messages {
+			if len(name) == 18 && strings.HasSuffix(name, "-H") {
+				count += 1
+			}
+		}
 	}
-	value, err := strconv.ParseFloat(strings.TrimSpace(string(out)), 64)
-	if err != nil {
-		level.Error(e.logger).Log("msg", "Error parsing queue size", "err", err)
-		return -1
-	}
-	return value
+	return count
 }
 
 func (e *Exporter) Start() {
@@ -183,11 +193,12 @@ func (e *Exporter) Start() {
 
 func (e *Exporter) Tail(filename string) *tail.Tail {
 	level.Info(e.logger).Log("msg", "Opening log", "filename", filename)
+	logger := log.NewStdlibAdapter(e.logger)
 	t, err := tail.TailFile(filename, tail.Config{
-		Location:  &tail.SeekInfo{Whence: io.SeekEnd},
-		ReOpen:    true,
-		MustExist: true,
-		Follow:    true,
+		Location: &tail.SeekInfo{Whence: io.SeekEnd},
+		ReOpen:   true,
+		Follow:   true,
+		Logger:   stdlog.New(logger, "", stdlog.LstdFlags),
 	})
 	if err != nil {
 		level.Error(e.logger).Log("msg", "Unable to open log", "err", err)
@@ -257,6 +268,7 @@ func main() {
 		rejectlog     = kingpin.Flag("exim.rejectlog", "Path to Exim reject log file.").Default("/var/log/exim4/rejectlog").Envar("EXIM_REJECTLOG").String()
 		paniclog      = kingpin.Flag("exim.paniclog", "Path to Exim panic log file.").Default("/var/log/exim4/paniclog").Envar("EXIM_PANICLOG").String()
 		eximExec      = kingpin.Flag("exim.executable", "Path to Exim daemon executable.").Default("exim4").Envar("EXIM_EXECUTABLE").String()
+		inputPath     = kingpin.Flag("exim.input-path", "Path to Exim queue directory.").Default("/var/spool/exim4/queue").Envar("EXIM_QUEUE_DIR").String()
 		listenAddress = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9350").Envar("WEB_LISTEN_ADDRESS").String()
 		metricsPath   = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").Envar("WEB_TELEMETRY_PATH").String()
 	)
@@ -274,6 +286,7 @@ func main() {
 		*rejectlog,
 		*paniclog,
 		*eximExec,
+		*inputPath,
 		logger,
 	)
 	exporter.QueueSize()

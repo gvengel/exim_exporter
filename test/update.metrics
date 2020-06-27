@@ -7,21 +7,21 @@ exim_daemon_processes{state="other"} 2
 exim_daemon_processes{state="running"} 1
 # HELP exim_messages_total Total number of logged messages broken down by flag (delivered, deferred, etc)
 # TYPE exim_messages_total counter
-exim_messages_total{flag="additional"} 1
-exim_messages_total{flag="arrived"} 6
-exim_messages_total{flag="completed"} 4
-exim_messages_total{flag="deferred"} 1
-exim_messages_total{flag="delivered"} 3
-exim_messages_total{flag="failed"} 2
+exim_messages_total{flag="additional"} 2
+exim_messages_total{flag="arrived"} 12
+exim_messages_total{flag="completed"} 8
+exim_messages_total{flag="deferred"} 2
+exim_messages_total{flag="delivered"} 6
+exim_messages_total{flag="failed"} 4
 # HELP exim_panic_total Total number of logged panic messages
 # TYPE exim_panic_total counter
-exim_panic_total 2
+exim_panic_total 4
 # HELP exim_queue Number of messages currently in queue
 # TYPE exim_queue gauge
-exim_queue 10
+exim_queue 123
 # HELP exim_reject_total Total number of logged reject messages
 # TYPE exim_reject_total counter
-exim_reject_total 2
+exim_reject_total 4
 # HELP exim_up Whether or not the main exim daemon is running
 # TYPE exim_up gauge
 exim_up 1
