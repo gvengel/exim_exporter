@@ -8,6 +8,7 @@ addons:
       - devscripts
       - dh-make
       - fakeroot
+      - debhelper
 before_install:
   - export VERSION=$(dpkg-parsechangelog --show-field Version)
 stages:
