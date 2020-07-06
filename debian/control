@@ -2,8 +2,8 @@ Source: prometheus-exim-exporter
 Section: misc
 Priority: optional
 Maintainer: Gabe Van Engel <gabe@schizoid.net>
-Build-Depends: debhelper (>= 10)
-Standards-Version: 4.1.2
+Build-Depends: debhelper (>=9)
+Standards-Version: 3.9.6
 
 Package: prometheus-exim-exporter
 Architecture: amd64
