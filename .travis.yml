@@ -1,14 +1,17 @@
 language: go
 go:
   - 1.x
-
+dist: xenial
+addons:
+  apt:
+    packages:
+      - devscripts
+      - dh-make
 before_install:
   - export VERSION=$(dpkg-parsechangelog --show-field Version)
-
 stages:
   - name: deploy
     if: branch = master AND tag = env(VERSION)
-
 deploy:
   provider: releases
   token:
