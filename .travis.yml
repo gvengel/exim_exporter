@@ -13,7 +13,7 @@ before_install:
   - export VERSION=$(dpkg-parsechangelog --show-field Version)
 stages:
   - name: deploy
-    if: branch = master AND tag = env(VERSION)
+    if: branch = master AND tag = concat("v", env(VERSION))
 deploy:
   provider: releases
   token:
