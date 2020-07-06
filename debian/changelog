@@ -1,0 +1,5 @@
+prometheus-exim-exporter (0.2~beta4) bionic; urgency=medium
+
+  * Initial Release.
+
+ -- Gabe Van Engel <gabe@schizoid.net>  Sat, 04 Jul 2020 17:08:46 -0700

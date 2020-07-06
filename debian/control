@@ -1,0 +1,13 @@
+Source: prometheus-exim-exporter
+Section: misc
+Priority: optional
+Maintainer: Gabe Van Engel <gabe@schizoid.net>
+Build-Depends: debhelper (>= 10)
+Standards-Version: 4.1.2
+
+Package: prometheus-exim-exporter
+Architecture: amd64
+Depends: exim4-config, ${shlibs:Depends}, ${misc:Depends}
+Description: Prometheus exporter for the exim4 mail server.
+ The exim exporter exports metrics from the exim4 mail
+ server for consumption by prometheus.

@@ -1,15 +1,22 @@
 language: go
 go:
   - 1.x
-script:
-  - go test -v
-  - go build -v
+
+before_install:
+  - export VERSION=$(dpkg-parsechangelog --show-field Version)
+
+stages:
+  - name: deploy
+    if: branch = master AND tag = env(VERSION)
+
 deploy:
   provider: releases
   token:
     secure: WM/n49DHfhHVehaNBsXsSLURAWhkNfXW4T7VBowXg6a3gyYZ9k0zzhREHGw8uyXMm7UpCWd4K4DdH5g1yQWWBRWSyBurm7ZBoYRAq2sRavPbWGxDSNCsPHDyzD87Q05+EmB+gCwQGv9N+59iBUJ8S1a0Vb7FI7Z9VmMCauTOKlrNDx9Aoh4d+S6TK+56qzJ9k/HAiT5aQK3NnfxLJc+nTfMcVejN3uH36bJVj5TN3pqS+AlbkEox3SWg9774gZaKzAJUCQ8BfUgPXgIwmnK+AvfAy+Fy+7QkMq1dqTaMd5J40zappoMpOMzfSL6K9BHhV6hv4NWCbxIm9JsQoh1M8DrKKsiXpA0a9yMXvv+ZJ3VXOg/ecbELY0J/394vr17R7ckmeL2dG+gv1yBrUHwJTaE8eta4NscY986Rf32rbhcNxxwdrreKzku0iNKOlh7NwzxWeISyU9Um9Svdn1bwHLKrK8LMXc3WCV0w+8OJFOLTQ5swHElT0CR5epgNHCyn/CpKpkfr99Wc1/ltg7oNhhyqYC0yIfDFiLw2ezuN0+MVpI5tCBRmoKOCzmzJELTd2nrR5F2kRAMHOmFpuKefBw/TxlfFVsiD203t7ZFTGiqAfQyAfPbgH9oKhPJwtWznOnJsb8t5JFpZrTjq6WN107MOI17fRYmchiXvFvVR46c=
   on:
     tags: true
-  file: exim_exporter
-  skip_cleanup: true
+  file:
+    - exim_exporter
+    - prometheus-exim-exporter_${VERSION}_amd64.deb
+  cleanup: false
   overwrite: true

@@ -1,0 +1,14 @@
+[Unit]
+Description=Prometheus exporter for the exim4 mail server.
+Documentation=https://prometheus.io/docs/introduction/overview/
+After=network.target
+
+[Service]
+Restart=always
+User=Debian-exim
+EnvironmentFile=/etc/default/prometheus-exim-exporter
+ExecStart=/usr/bin/prometheus-exim-exporter $ARGS
+ExecReload=/bin/kill -HUP $MAINPID
+
+[Install]
+WantedBy=multi-user.target
