@@ -1,4 +1,4 @@
-prometheus-exim-exporter (0.2~beta4) xenial; urgency=medium
+prometheus-exim-exporter (0.2beta4) xenial; urgency=medium
 
   * Initial Release.
 
