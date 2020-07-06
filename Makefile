@@ -28,5 +28,5 @@ build-deb:
 	cd build; debuild -us -uc
 
 clean:
-	rm -fr exim_exporter prometheus-exim-exporter_*
+	rm -fr exim_exporter build
 
