@@ -1,3 +1,9 @@
+prometheus-exim-exporter (0.3) xenial; urgency=medium
+
+  * Fix package
+
+ -- Gabe Van Engel <gabe@schizoid.net>  Mon, 06 Jul 2020 23:00:19 -0700
+
 prometheus-exim-exporter (0.2beta4) xenial; urgency=medium
 
   * Initial Release.
