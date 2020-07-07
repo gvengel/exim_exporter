@@ -7,6 +7,7 @@ addons:
     packages:
       - devscripts
       - dh-make
+      - dh-systemd
       - fakeroot
       - debhelper
 before_install:
