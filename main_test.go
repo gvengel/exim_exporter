@@ -11,6 +11,7 @@ import (
 	"path"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func buildMockInput(inputPath string) error {
@@ -154,6 +155,7 @@ func TestMetrics(t *testing.T) {
 		appendLog("mainlog", mainlog, t)
 		appendLog("rejectlog", rejectlog, t)
 		appendLog("paniclog", paniclog, t)
+		time.Sleep(100 * time.Millisecond)
 		collectAndCompareTestCase("tail", registry, t)
 	})
 	t.Run("update", func(t *testing.T) {
@@ -161,6 +163,7 @@ func TestMetrics(t *testing.T) {
 		appendLog("mainlog", mainlog, t)
 		appendLog("rejectlog", rejectlog, t)
 		appendLog("paniclog", paniclog, t)
+		time.Sleep(100 * time.Millisecond)
 		collectAndCompareTestCase("update", registry, t)
 	})
 }
