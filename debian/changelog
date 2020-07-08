@@ -1,3 +1,9 @@
+prometheus-exim-exporter (0.4) xenial; urgency=medium
+
+  * Fix default input path.
+
+ -- Gabe Van Engel <gabe@schizoid.net>  Wed, 08 Jul 2020 00:01:29 -0700
+
 prometheus-exim-exporter (0.3) xenial; urgency=medium
 
   * Fix package
