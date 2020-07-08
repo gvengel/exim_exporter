@@ -155,7 +155,7 @@ func TestMetrics(t *testing.T) {
 		appendLog("mainlog", mainlog, t)
 		appendLog("rejectlog", rejectlog, t)
 		appendLog("paniclog", paniclog, t)
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(1 * time.Second)
 		collectAndCompareTestCase("tail", registry, t)
 	})
 	t.Run("update", func(t *testing.T) {
@@ -163,7 +163,7 @@ func TestMetrics(t *testing.T) {
 		appendLog("mainlog", mainlog, t)
 		appendLog("rejectlog", rejectlog, t)
 		appendLog("paniclog", paniclog, t)
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(1 * time.Second)
 		collectAndCompareTestCase("update", registry, t)
 	})
 }
