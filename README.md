@@ -13,7 +13,7 @@ Download and run the latest binary from the [releases tab](https://github.com/gv
 ```
 
 The exporter will need read access to exim's log and spool directories. 
-Therefor, it is recommended to run as the same user as the exim server.
+Therefore, it is recommended to run as the same user as the exim server.
 
 Alternately, a simple Debian package is provided which installs the exporter as a service.
 
