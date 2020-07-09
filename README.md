@@ -26,7 +26,7 @@ dpkg -i prometheus-exim-exporter*.deb
 The default settings are intend for Debian/Ubuntu. Other distributions may configure exim with different system paths, 
 and the exporter will need to be configured to match.
 
-See `--help` for more detail.
+See `--help` for more details.
 
 ## Building
 
