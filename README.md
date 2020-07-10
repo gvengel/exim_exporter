@@ -26,7 +26,8 @@ dpkg -i prometheus-exim-exporter*.deb
 The default settings are intend for Debian/Ubuntu. Other distributions may configure exim with different system paths, 
 and the exporter will need to be configured to match.
 
-See `--help` for more details.
+See `--help` for more details. 
+Note, command line arguments can also be set via environment variable. e.g `--exim.mainlog` -> `EXIM_MAINLOG`.
 
 ## Building
 
