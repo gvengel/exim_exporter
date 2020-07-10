@@ -293,6 +293,19 @@ func main() {
 	exporter.Start()
 	prometheus.MustRegister(exporter)
 
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		_, err := w.Write([]byte(`<html>
+<head><title>Exim Exporter</title></head>
+<body>
+  <h1>Exim Exporter</h1>
+  <p>` + version.Info() + `</p>
+  <p><a href='` + *metricsPath + `'>Metrics</a></p>
+</body>
+</html>`))
+		if err != nil {
+			_ = level.Error(logger).Log("msg", err)
+		}
+	})
 	http.Handle(*metricsPath, promhttp.Handler())
 	level.Info(logger).Log("msg", "Listening", "address", listenAddress)
 	level.Error(logger).Log(http.ListenAndServe(*listenAddress, nil))
