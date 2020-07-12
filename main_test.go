@@ -8,19 +8,18 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
-	"path"
 	"path/filepath"
 	"testing"
 	"time"
 )
 
 func isCaseSensitiveFilesystem(inputPath string) (bool, error) {
-	fh, err := os.Create(path.Join(inputPath, "test"))
+	fh, err := os.Create(filepath.Join(inputPath, "test"))
 	if err != nil {
 		return false, err
 	}
 	fh.Close()
-	_, err = os.Stat(path.Join(inputPath, "TEST"))
+	_, err = os.Stat(filepath.Join(inputPath, "TEST"))
 	if err == nil {
 		return false, nil
 	} else if os.IsNotExist(err) {
@@ -33,7 +32,7 @@ func isCaseSensitiveFilesystem(inputPath string) (bool, error) {
 func buildMockInput(inputPath string) error {
 	for h := 0; h < 62; h++ {
 		hashChar := string(BASE62[h])
-		hashPath := path.Join(inputPath, hashChar)
+		hashPath := filepath.Join(inputPath, hashChar)
 		if err := os.MkdirAll(hashPath, 0755); err != nil {
 			return err
 		}
@@ -52,7 +51,7 @@ func buildMockInput(inputPath string) error {
 			}
 			for _, fileType := range "HD" {
 				fileName := msgName + "-" + string(fileType)
-				fh, err := os.Create(path.Join(hashPath, fileName))
+				fh, err := os.Create(filepath.Join(hashPath, fileName))
 				if err != nil {
 					return err
 				}
@@ -64,7 +63,7 @@ func buildMockInput(inputPath string) error {
 }
 
 func collectAndCompareTestCase(name string, gatherer prometheus.Gatherer, t *testing.T) {
-	metrics, err := os.Open(path.Join("test", name+".metrics"))
+	metrics, err := os.Open(filepath.Join("test", name+".metrics"))
 	if err != nil {
 		t.Fatalf("Error opening test metrics")
 	}
@@ -74,7 +73,7 @@ func collectAndCompareTestCase(name string, gatherer prometheus.Gatherer, t *tes
 }
 
 func appendLog(name string, file *os.File, t *testing.T) {
-	data, err := ioutil.ReadFile(path.Join("test", name))
+	data, err := ioutil.ReadFile(filepath.Join("test", name))
 	if err != nil {
 		t.Fatal("Unable to read mainlog test data")
 	}
@@ -95,7 +94,7 @@ func TestMetrics(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(tempPath)
-	inputPath := path.Join(tempPath, "input")
+	inputPath := filepath.Join(tempPath, "input")
 	if err := os.MkdirAll(inputPath, 0755); err != nil {
 		t.Fatal(err)
 	}

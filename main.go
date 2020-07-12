@@ -22,14 +22,6 @@ import (
 
 	"github.com/hpcloud/tail"
 	"github.com/shirou/gopsutil/process"
-	"gopkg.in/alecthomas/kingpin.v2"
-	"io"
-	stdlog "log"
-	"net/http"
-	"os"
-	"path"
-	"path/filepath"
-	"strings"
 )
 
 const BASE62 = "0123456789aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ"
