@@ -59,9 +59,9 @@ An additional label is added for messages marked as completed.
 | deferred   | ==        |
 | completed  | Completed |
 		
-### exim_panic_total and exim_reject_total 
+### exim_reject_total and exim_panic_total 
 
-These stats are calculated by tailing the paniclog and rejectlog, returning counter for the number of lines in each.
+These stats are calculated by tailing the rejectlog and paniclog, returning counter for the number of lines in each.
 
 ### exim_processes
 
