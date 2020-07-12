@@ -14,6 +14,22 @@ import (
 	"time"
 )
 
+func isCaseSensitiveFilesystem(inputPath string) (bool, error) {
+	fh, err := os.Create(path.Join(inputPath, "test"))
+	if err != nil {
+		return false, err
+	}
+	fh.Close()
+	_, err = os.Stat(path.Join(inputPath, "TEST"))
+	if err == nil {
+		return false, nil
+	} else if os.IsNotExist(err) {
+		return true, nil
+	} else {
+		return false, err
+	}
+}
+
 func buildMockInput(inputPath string) error {
 	for h := 0; h < 62; h++ {
 		hashChar := string(BASE62[h])
@@ -129,7 +145,13 @@ func TestMetrics(t *testing.T) {
 	t.Run("down", func(t *testing.T) {
 		collectAndCompareTestCase("down", registry, t)
 	})
-
+	caseSensitive, err := isCaseSensitiveFilesystem(inputPath)
+	if err != nil {
+		t.Fatal("Unable to detect case-insensitive filesystem", err)
+	}
+	if !caseSensitive {
+		t.Fatal("Running tests on a case-insensitive filesystem is not supported.")
+	}
 	if err = buildMockInput(inputPath); err != nil {
 		t.Fatal("Unable to create mock input:", err)
 	}

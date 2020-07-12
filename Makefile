@@ -8,6 +8,8 @@ BRANCH = $(shell git rev-parse --abbrev-ref HEAD)
 LDFLAGS = -X github.com/prometheus/common/version.Version=$(VERSION) \
 		  -X github.com/prometheus/common/version.Revision=$(REVISION) \
 		  -X github.com/prometheus/common/version.Branch=$(BRANCH)
+TMP_DIR := $(shell mktemp -d)
+BUILD_DIR := $(TMP_DIR)/build
 
 fmt:
 	go fmt .
@@ -22,11 +24,12 @@ build:
 	CGO_ENABLED=0 GOOS=linux go build -v -o exim_exporter -ldflags "$(LDFLAGS)" .
 
 build-deb:
-	mkdir build
-	cp exim_exporter build/prometheus-exim-exporter
-	cp -r debian/ build/
-	cd build; debuild -us -uc
+	mkdir $(BUILD_DIR)
+	cp exim_exporter $(BUILD_DIR)/prometheus-exim-exporter
+	cp -r debian/ $(BUILD_DIR)
+	cd $(BUILD_DIR); debuild -us -uc
+	cp $(TMP_DIR)/*.deb .
 
 clean:
-	rm -fr exim_exporter build
+	rm -f exim_exporter prometheus-exim-exporter_*.deb
 
