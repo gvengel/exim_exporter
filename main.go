@@ -141,7 +141,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 
 func (e *Exporter) ProcessStates() map[string]float64 {
 	level.Debug(e.logger).Log("msg", "Reading process states")
-	var states = map[string]float64{}
+	states := make(map[string]float64)
 	processes, err := getProcesses()
 	if err != nil {
 		level.Error(e.logger).Log("msg", err)
@@ -168,8 +168,8 @@ func (e *Exporter) ProcessStates() map[string]float64 {
 
 func (e *Exporter) QueueSize() float64 {
 	level.Debug(e.logger).Log("msg", "Reading queue size")
-	count := 0.0
-	for h := 0; h < 62; h++ {
+	var count float64
+	for h := 0; h < len(BASE62); h++ {
 		hashPath := filepath.Join(e.inputPath, string(BASE62[h]))
 		hashDir, err := os.Open(hashPath)
 		if err != nil {
@@ -313,5 +313,4 @@ func main() {
 	http.Handle(*metricsPath, promhttp.Handler())
 	level.Info(logger).Log("msg", "Listening", "address", listenAddress)
 	level.Error(logger).Log(http.ListenAndServe(*listenAddress, nil))
-
 }
