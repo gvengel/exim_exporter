@@ -44,20 +44,20 @@ var (
 	)
 	eximMessages = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "exim_messages_total",
+			Name: prometheus.BuildFQName("exim", "", "messages_total"),
 			Help: "Total number of logged messages broken down by flag (delivered, deferred, etc)",
 		},
 		[]string{"flag"},
 	)
 	eximReject = prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Name: "exim_reject_total",
+			Name: prometheus.BuildFQName("exim", "", "reject_total"),
 			Help: "Total number of logged reject messages",
 		},
 	)
 	eximPanic = prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Name: "exim_panic_total",
+			Name: prometheus.BuildFQName("exim", "", "panic_total"),
 			Help: "Total number of logged panic messages",
 		},
 	)
