@@ -34,7 +34,7 @@ var (
 		nil, nil,
 	)
 	eximProcesses = prometheus.NewDesc(
-		prometheus.BuildFQName("exim", "daemon", "processes"),
+		prometheus.BuildFQName("exim", "", "processes"),
 		"Number of running exim process broken down by state (delivering, handling, etc)",
 		[]string{"state"}, nil,
 	)

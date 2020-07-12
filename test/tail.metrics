@@ -1,10 +1,10 @@
-# HELP exim_daemon_processes Number of running exim process broken down by state (delivering, handling, etc)
-# TYPE exim_daemon_processes gauge
-exim_daemon_processes{state="daemon"} 1
-exim_daemon_processes{state="delivering"} 2
-exim_daemon_processes{state="handling"} 3
-exim_daemon_processes{state="other"} 2
-exim_daemon_processes{state="running"} 1
+# HELP exim_processes Number of running exim process broken down by state (delivering, handling, etc)
+# TYPE exim_processes gauge
+exim_processes{state="daemon"} 1
+exim_processes{state="delivering"} 2
+exim_processes{state="handling"} 3
+exim_processes{state="other"} 2
+exim_processes{state="running"} 1
 # HELP exim_messages_total Total number of logged messages broken down by flag (delivered, deferred, etc)
 # TYPE exim_messages_total counter
 exim_messages_total{flag="additional"} 1
