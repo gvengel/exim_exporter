@@ -1,14 +1,26 @@
 package main
 
 import (
+	"io"
+	stdlog "log"
+	"net/http"
+	"os"
+	"path"
+	"path/filepath"
+	"strings"
+
+	"gopkg.in/alecthomas/kingpin.v2"
+
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
-	"github.com/hpcloud/tail"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/promlog"
 	"github.com/prometheus/common/promlog/flag"
 	"github.com/prometheus/common/version"
+
+	"github.com/hpcloud/tail"
 	"github.com/shirou/gopsutil/process"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"io"
