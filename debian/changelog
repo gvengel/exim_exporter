@@ -1,3 +1,10 @@
+prometheus-exim-exporter (0.5) xenial; urgency=medium
+
+  * Renamed exim_daemon_processes to exim_processes.
+  * Improved tests.
+
+ -- Gabe Van Engel <gabe@schizoid.net>  Sat, 11 Jul 2020 23:28:22 -0700
+
 prometheus-exim-exporter (0.4) xenial; urgency=medium
 
   * Fix default input path.
