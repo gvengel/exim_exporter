@@ -35,3 +35,51 @@ Note, command line arguments can also be set via environment variable. e.g `--ex
 make
 ```
 
+## Metrics
+
+See example metrics in [tests](https://github.com/gvengel/exim_exporter/blob/master/test/update.metrics).
+
+### exim_messages_total
+
+The exporter tails the mainlog and counts messages labeled by the observed 
+[log message flags](https://www.exim.org/exim-html-current/doc/html/spec_html/ch-log_files.html#SECID250). 
+An additional label is added for messages marked as completed.
+
+| Prom Label | Exim Flag |
+|------------|-----------|
+| arrived    | <=        |
+| fakereject | (=        |
+| delivered  | =>        |
+| additional | ->        |
+| cutthrough | \>\>      |
+| suppressed | *>        |
+| failed     | **        |
+| deferred   | ==        |
+| completed  | Completed |
+		
+### exim_reject_total and exim_panic_total 
+
+The exporter tails the rejectlog and paniclog and reports a simple count.
+
+### exim_processes
+
+The exporter returns the number of running exim process, labeled process state.
+The state is detected by parsing the process's command line and looking for know arguments.
+While this method doesn't provide the same detail as `exiwhat`, that tools is 
+[contraindicated for using in monitoring](https://www.exim.org/exim-html-current/doc/html/spec_html/ch-exim_utilities.html#SECTfinoutwha).
+
+| Prom Label | Exim State |
+|------------|------------|
+| daemon     | parent pid |
+| delivering | exim -Mc   |
+| handling   | exim -bd   |
+| running    | exim -qG   |
+| other      | other      | 
+
+### exim_queue
+
+This metric reports the equivalent of `exim -bpc`. Note, the value is calculated by independently parsing the queue, not forking to exim.
+
+### exim_up
+
+Whether the main exim daemon is running.
