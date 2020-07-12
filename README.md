@@ -41,8 +41,8 @@ See example metrics in [tests](https://github.com/gvengel/exim_exporter/blob/mas
 
 ### exim_messages_total
 
-The exporter tails the mainlog and counts messages labeled by the observed 
-[log message flags](https://www.exim.org/exim-html-current/doc/html/spec_html/ch-log_files.html#SECID250). 
+This stat is calculated by tailing the exim mainlog and returning a counter with labels for each
+[log message flag](https://www.exim.org/exim-html-current/doc/html/spec_html/ch-log_files.html#SECID250). 
 An additional label is added for messages marked as completed.
 
 | Prom Label | Exim Flag |
@@ -57,15 +57,15 @@ An additional label is added for messages marked as completed.
 | deferred   | ==        |
 | completed  | Completed |
 		
-### exim_reject_total and exim_panic_total 
+### exim_panic_total and exim_reject_total 
 
-The exporter tails the rejectlog and paniclog and reports a simple count.
+These stats are calculated by tailing the paniclog and rejectlog, returning counter for the number of lines in each.
 
 ### exim_processes
 
-The exporter returns the number of running exim process, labeled process state.
+This metric returns the number of running exim process, labeled by process state.
 The state is detected by parsing the process's command line and looking for know arguments.
-While this method doesn't provide the same detail as `exiwhat`, that tools is 
+While this method doesn't provide the same detail as `exiwhat`, that tool is 
 [contraindicated for using in monitoring](https://www.exim.org/exim-html-current/doc/html/spec_html/ch-exim_utilities.html#SECTfinoutwha).
 
 | Prom Label | Exim State |
