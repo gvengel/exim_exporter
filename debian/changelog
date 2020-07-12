@@ -1,3 +1,10 @@
+prometheus-exim-exporter (0.6) xenial; urgency=medium
+
+  * Improved code readability and standards compliance.
+  * Improved documentation.
+
+ -- Gabe Van Engel <gabe@schizoid.net>  Sun, 12 Jul 2020 11:28:10 -0700
+
 prometheus-exim-exporter (0.5) xenial; urgency=medium
 
   * Renamed exim_daemon_processes to exim_processes.
