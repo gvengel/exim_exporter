@@ -176,6 +176,8 @@ func TestMetrics(t *testing.T) {
 		appendLog("mainlog", mainlog, t)
 		appendLog("rejectlog", rejectlog, t)
 		appendLog("paniclog", paniclog, t)
+		// TODO: Verify stats have been collected before polling.
+		// There is currently a race condition waiting for inotify to trigger stats collection.
 		time.Sleep(1 * time.Second)
 		collectAndCompareTestCase("tail", registry, t)
 	})
