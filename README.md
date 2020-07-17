@@ -25,8 +25,11 @@ dpkg -i prometheus-exim-exporter*.deb
 
 ## Usage
 
-The default settings are intend for Debian/Ubuntu. Other distributions may configure exim with different system paths, 
-and the exporter will need to be configured to match.
+By default, the exporter serves on port `9636` at `/metrics`. 
+
+The exporter requires paths to your exim server logs and input spool (mail queue). The default settings
+are configured for Debian/Ubuntu servers. Running the exporter on other distributions may require
+manually configuring the paths.
 
 See `--help` for more details. 
 Note, command line arguments can also be set via environment variable. e.g `--exim.mainlog` -> `EXIM_MAINLOG`.

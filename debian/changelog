@@ -1,3 +1,9 @@
+prometheus-exim-exporter (1.0.0) xenial; urgency=medium
+
+  * Updated the default port to 9636, as registered in the default-port-allocations wiki.
+
+ -- Gabe Van Engel <gabe@schizoid.net>  Thu, 16 Jul 2020 21:35:30 -0700
+
 prometheus-exim-exporter (0.6) xenial; urgency=medium
 
   * Improved code readability and standards compliance.
