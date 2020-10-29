@@ -8,6 +8,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"regexp"
 
 	"gopkg.in/alecthomas/kingpin.v2"
 
@@ -212,14 +213,15 @@ func (e *Exporter) Tail(filename string) *tail.Tail {
 }
 
 func (e *Exporter) TailMainLog() {
+	r := regexp.MustCompile(`^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d{3})?(?: \[\d+\])? \w{6}-\w{6}-\w{2} (\S*)`)
 	t := e.Tail(e.mainlog)
 	for line := range t.Lines {
 		level.Debug(e.logger).Log("file", "mainlong", "msg", line.Text)
-		parts := strings.SplitN(line.Text, " ", 5)
-		if len(parts) < 3 {
+		match := r.FindStringSubmatch(line.Text)
+		if len(match) < 2 {
 			continue
 		}
-		op := parts[3]
+		op := match[1]
 		switch op {
 		case "<=":
 			eximMessages.With(prometheus.Labels{"flag": "arrived"}).Inc()
