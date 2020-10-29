@@ -166,25 +166,32 @@ func (e *Exporter) ProcessStates() map[string]float64 {
 	return states
 }
 
+func (e *Exporter) CountMessages(dirname string) float64 {
+	var count float64
+	dir, err := os.Open(dirname)
+	if err != nil {
+		return 0
+	}
+	messages, err := dir.Readdirnames(-1)
+	dir.Close()
+	if err != nil {
+		return 0
+	}
+	for _, name := range messages {
+		if len(name) == 18 && strings.HasSuffix(name, "-H") {
+			count += 1
+		}
+	}
+	return count
+}
+
 func (e *Exporter) QueueSize() float64 {
 	level.Debug(e.logger).Log("msg", "Reading queue size")
 	var count float64
+	count += e.CountMessages(e.inputPath)
 	for h := 0; h < len(BASE62); h++ {
 		hashPath := filepath.Join(e.inputPath, string(BASE62[h]))
-		hashDir, err := os.Open(hashPath)
-		if err != nil {
-			continue
-		}
-		messages, err := hashDir.Readdirnames(-1)
-		hashDir.Close()
-		if err != nil {
-			continue
-		}
-		for _, name := range messages {
-			if len(name) == 18 && strings.HasSuffix(name, "-H") {
-				count += 1
-			}
-		}
+		count += e.CountMessages(hashPath)
 	}
 	return count
 }
