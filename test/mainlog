@@ -1,16 +1,16 @@
-2020-06-19 04:51:49 1jmFYj-00039V-QX <= noreply@test.corp H=(test.corp) [2.2.2.2] P=smtp S=7386
+2020-06-19 04:51:49 [123] 1jmFYj-00039V-QX <= noreply@test.corp H=(test.corp) [2.2.2.2] P=smtp S=7386
 2020-06-19 04:54:02 1jmFYj-00039V-QX H=null.corp [6.6.6.6] Connection timed out
 2020-06-19 04:54:02 1jmFYj-00039V-QX == bob@null.corp R=dnslookup T=remote_smtp defer (110): Connection timed out
 2020-06-19 04:54:02 1jmFYj-00039V-QX ** bob@null.corp: retry timeout exceeded
 2020-06-19 04:54:02 1jmFas-0004f6-EB <= <> R=1jmFYj-00039V-QX U=Debian-exim P=local S=8656
-2020-06-19 04:54:02 1jmFYj-00039V-QX Completed
+2020-06-19 04:54:02 [456] 1jmFYj-00039V-QX Completed
 2020-06-19 06:26:02 1jmH1s-000AVD-5t => dave@foo.corp R=dnslookup T=remote_smtp H=mail.foo.corp [1.1.1.1] C="250 2.0.0 Ok: queued"
 2020-06-19 06:26:02 1jmH1s-000AVD-5t Completed
 2020-06-19 06:26:02 1jmH1t-0000dO-Un <= noreply@test.corp H=(test.corp) [2.2.2.2] P=smtp S=7462
 2020-06-19 06:26:03 1jmH1t-0000dO-Un => harry@bar.corp R=dnslookup T=remote_smtp H=mail.bar.corp [7.7.7.7] X=TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256 CV=yes DN="C=US,ST=Notia,L=Nowhere,O=Bar Corp,CN=mail.bar.corp" C="250 2.6.0 <E1jmH1t-0000dO-Un@smtp.test.corp> 16655 bytes in 0.342, 47.543 KB/sec Queued mail for delivery -> 250 2.1.5"
 2020-06-19 06:26:03 1jmH1t-0000dO-Un Completed
 2020-06-19 10:32:54 1jmKso-0009d4-Uf <= noreply@test.corp H=(test.corp) [2.2.2.2] P=smtp S=7983
-2020-06-19 10:32:57 1jmKso-0009d4-Uf ** molly@zee.corp R=dnslookup T=remote_smtp H=mail.zee.corp [3.3.3.3] X=TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256 CV=yes DN="C=US,ST=Fake,L=Lost,O=Zee Corp,CN=mail.zee.corp": SMTP error from remote mail server after end of data: 554 5.2.0 mKr3jsd25ZIfXmKr4jFD2w Recipient Mailbox Full [504]
+2020-06-19 10:32:57 [789] 1jmKso-0009d4-Uf ** molly@zee.corp R=dnslookup T=remote_smtp H=mail.zee.corp [3.3.3.3] X=TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256 CV=yes DN="C=US,ST=Fake,L=Lost,O=Zee Corp,CN=mail.zee.corp": SMTP error from remote mail server after end of data: 554 5.2.0 mKr3jsd25ZIfXmKr4jFD2w Recipient Mailbox Full [504]
 2020-06-19 10:32:57 1jmKsr-00040h-1G <= <> R=1jmKso-0009d4-Uf U=Debian-exim P=local S=9521
 2020-06-19 10:32:57 1jmKso-0009d4-Uf Completed
 2020-06-20 00:13:14 1jmXgg-000AIC-89 <= tom@test.corp H=(relay.test.corp) [4.4.4.4] P=esmtp S=15670 id=28f524f604c24d70a519a32fcbdf01d9@test.corp
