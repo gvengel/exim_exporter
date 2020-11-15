@@ -1,3 +1,10 @@
+prometheus-exim-exporter (1.1.0) xenial; urgency=medium
+
+  * Add support for logs with the pid field enabled.
+  * Add support for message queues without hash dirs enabled.
+
+ -- Gabe Van Engel <gabe@schizoid.net>  Sun, 15 Nov 2020 12:03:43 -0800
+
 prometheus-exim-exporter (1.0.0) xenial; urgency=medium
 
   * Updated the default port to 9636, as registered in the default-port-allocations wiki.
