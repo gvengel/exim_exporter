@@ -29,7 +29,34 @@ func isCaseSensitiveFilesystem(inputPath string) (bool, error) {
 	}
 }
 
+func writeMockMessage(path string, hash string, index int) error {
+	msgName := ""
+	for i := 0; i < 4; i++ {
+		msgName += string(BASE62[rand.Intn(62)])
+	}
+	// Add one deterministic char to prevent collisions
+	msgName += string(BASE62[index])
+	// Add the last char of the first segment should match our hash dir
+	msgName += hash + "-"
+	for i := 0; i < 6; i++ {
+		msgName += string(BASE62[rand.Intn(62)])
+	}
+	msgName += "-"
+	for i := 0; i < 2; i++ {
+		msgName += string(BASE62[rand.Intn(62)])
+	}
+	for _, fileType := range "HD" {
+		fileName := msgName + "-" + string(fileType)
+		fh, err := os.Create(filepath.Join(path, fileName))
+		if err != nil {
+			return err
+		}
+		fh.Close()
+	}
+	return nil
+}
 func buildMockInput(inputPath string) error {
+	// Write out test messages to a standard hash dir structure
 	for h := 0; h < 62; h++ {
 		hashChar := string(BASE62[h])
 		hashPath := filepath.Join(inputPath, hashChar)
@@ -37,26 +64,16 @@ func buildMockInput(inputPath string) error {
 			return err
 		}
 		for i := 0; i <= h%3; i++ {
-			msgName := ""
-			for i := 0; i < 5; i++ {
-				msgName += string(BASE62[rand.Intn(62)])
+			if err := writeMockMessage(hashPath, hashChar, i); err != nil {
+				return err
 			}
-			msgName += hashChar + "-"
-			for i := 0; i < 6; i++ {
-				msgName += string(BASE62[rand.Intn(62)])
-			}
-			msgName += "-"
-			for i := 0; i < 2; i++ {
-				msgName += string(BASE62[rand.Intn(62)])
-			}
-			for _, fileType := range "HD" {
-				fileName := msgName + "-" + string(fileType)
-				fh, err := os.Create(filepath.Join(hashPath, fileName))
-				if err != nil {
-					return err
-				}
-				fh.Close()
-			}
+		}
+	}
+	// Write out a couple messages using the single dir pattern
+	for i := 0; i < 3; i++ {
+		hashChar := string(BASE62[rand.Intn(62)])
+		if err := writeMockMessage(inputPath, hashChar, i); err != nil {
+			return err
 		}
 	}
 	return nil

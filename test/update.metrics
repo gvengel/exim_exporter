@@ -18,7 +18,7 @@ exim_messages_total{flag="failed"} 4
 exim_panic_total 4
 # HELP exim_queue Number of messages currently in queue
 # TYPE exim_queue gauge
-exim_queue 123
+exim_queue 126
 # HELP exim_reject_total Total number of logged reject messages
 # TYPE exim_reject_total counter
 exim_reject_total 4
