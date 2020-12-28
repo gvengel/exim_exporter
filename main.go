@@ -71,6 +71,12 @@ var (
 			Help: "Total number of logged panic messages",
 		},
 	)
+	readErrors = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: prometheus.BuildFQName("exim", "log_read", "errors"),
+			Help: "Total number of errors encountered while reading the logs",
+		},
+	)
 )
 
 var processFlags = map[string]string{
@@ -229,6 +235,11 @@ func (e *Exporter) Tail(filename string) chan *tail.Line {
 
 func (e *Exporter) TailMainLog(lines chan *tail.Line) {
 	for line := range lines {
+		if line.Err != nil {
+			level.Error(e.logger).Log("msg", "Caught error while reading mainlog", "err", line.Err)
+			readErrors.Inc()
+			continue
+		}
 		level.Debug(e.logger).Log("file", "mainlong", "msg", line.Text)
 		parts := strings.SplitN(line.Text, " ", 6)
 		size := len(parts)
@@ -270,6 +281,11 @@ func (e *Exporter) TailMainLog(lines chan *tail.Line) {
 
 func (e *Exporter) TailRejectLog(lines chan *tail.Line) {
 	for line := range lines {
+		if line.Err != nil {
+			level.Error(e.logger).Log("msg", "Caught error while reading rejectlog", "err", line.Err)
+			readErrors.Inc()
+			continue
+		}
 		level.Debug(e.logger).Log("file", "rejectlog", "msg", line.Text)
 		eximReject.Inc()
 	}
@@ -277,6 +293,11 @@ func (e *Exporter) TailRejectLog(lines chan *tail.Line) {
 
 func (e *Exporter) TailPanicLog(lines chan *tail.Line) {
 	for line := range lines {
+		if line.Err != nil {
+			level.Error(e.logger).Log("msg", "Caught error while reading paniclog", "err", line.Err)
+			readErrors.Inc()
+			continue
+		}
 		level.Debug(e.logger).Log("file", "paniclog", "msg", line.Text)
 		eximPanic.Inc()
 	}
@@ -287,6 +308,7 @@ func init() {
 	prometheus.MustRegister(eximMessages)
 	prometheus.MustRegister(eximReject)
 	prometheus.MustRegister(eximPanic)
+	prometheus.MustRegister(readErrors)
 }
 
 func main() {
