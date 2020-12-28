@@ -10,6 +10,7 @@ addons:
       - dh-systemd
       - fakeroot
       - debhelper
+      - libsystemd-dev
 before_install:
   - export VERSION=$(dpkg-parsechangelog --show-field Version)
 stages:
