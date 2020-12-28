@@ -177,7 +177,6 @@ func (e *Exporter) ProcessStates() map[string]float64 {
 }
 
 func (e *Exporter) CountMessages(dirname string) float64 {
-	var count float64
 	dir, err := os.Open(dirname)
 	if err != nil {
 		return 0
@@ -187,6 +186,7 @@ func (e *Exporter) CountMessages(dirname string) float64 {
 	if err != nil {
 		return 0
 	}
+	var count float64
 	for _, name := range messages {
 		if len(name) == 18 && strings.HasSuffix(name, "-H") {
 			count += 1
@@ -197,8 +197,7 @@ func (e *Exporter) CountMessages(dirname string) float64 {
 
 func (e *Exporter) QueueSize() float64 {
 	level.Debug(e.logger).Log("msg", "Reading queue size")
-	var count float64
-	count += e.CountMessages(e.inputPath)
+	count := e.CountMessages(e.inputPath)
 	for h := 0; h < len(BASE62); h++ {
 		hashPath := filepath.Join(e.inputPath, string(BASE62[h]))
 		count += e.CountMessages(hashPath)
@@ -229,18 +228,15 @@ func (e *Exporter) Tail(filename string) chan *tail.Line {
 }
 
 func (e *Exporter) TailMainLog() {
-	var (
-		index int
-		size  int
-	)
 	for line := range e.Tail(e.mainlog) {
 		level.Debug(e.logger).Log("file", "mainlong", "msg", line.Text)
 		parts := strings.SplitN(line.Text, " ", 6)
-		size = len(parts)
+		size := len(parts)
 		if size < 3 {
 			continue
 		}
 		// Handle logs when PID logging is enabled
+		var index int
 		if parts[2][0] == '[' {
 			index = 4
 		} else {
