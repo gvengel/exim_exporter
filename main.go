@@ -24,6 +24,16 @@ import (
 	"github.com/shirou/gopsutil/process"
 )
 
+var (
+	mainlog       = kingpin.Flag("exim.mainlog", "Path to Exim main log file.").Default("/var/log/exim4/mainlog").Envar("EXIM_MAINLOG").String()
+	rejectlog     = kingpin.Flag("exim.rejectlog", "Path to Exim reject log file.").Default("/var/log/exim4/rejectlog").Envar("EXIM_REJECTLOG").String()
+	paniclog      = kingpin.Flag("exim.paniclog", "Path to Exim panic log file.").Default("/var/log/exim4/paniclog").Envar("EXIM_PANICLOG").String()
+	eximExec      = kingpin.Flag("exim.executable", "Name of the Exim daemon executable.").Default("exim4").Envar("EXIM_EXECUTABLE").String()
+	inputPath     = kingpin.Flag("exim.input-path", "Path to Exim queue directory.").Default("/var/spool/exim4/input").Envar("EXIM_QUEUE_DIR").String()
+	listenAddress = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9636").Envar("WEB_LISTEN_ADDRESS").String()
+	metricsPath   = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").Envar("WEB_TELEMETRY_PATH").String()
+)
+
 const BASE62 = "0123456789aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ"
 
 var (
@@ -287,15 +297,6 @@ func init() {
 }
 
 func main() {
-	var (
-		mainlog       = kingpin.Flag("exim.mainlog", "Path to Exim main log file.").Default("/var/log/exim4/mainlog").Envar("EXIM_MAINLOG").String()
-		rejectlog     = kingpin.Flag("exim.rejectlog", "Path to Exim reject log file.").Default("/var/log/exim4/rejectlog").Envar("EXIM_REJECTLOG").String()
-		paniclog      = kingpin.Flag("exim.paniclog", "Path to Exim panic log file.").Default("/var/log/exim4/paniclog").Envar("EXIM_PANICLOG").String()
-		eximExec      = kingpin.Flag("exim.executable", "Name of the Exim daemon executable.").Default("exim4").Envar("EXIM_EXECUTABLE").String()
-		inputPath     = kingpin.Flag("exim.input-path", "Path to Exim queue directory.").Default("/var/spool/exim4/input").Envar("EXIM_QUEUE_DIR").String()
-		listenAddress = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9636").Envar("WEB_LISTEN_ADDRESS").String()
-		metricsPath   = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").Envar("WEB_TELEMETRY_PATH").String()
-	)
 	promlogConfig := &promlog.Config{}
 	flag.AddFlags(kingpin.CommandLine, promlogConfig)
 	kingpin.HelpFlag.Short('h')
