@@ -348,5 +348,5 @@ func main() {
 	})
 	http.Handle(*metricsPath, promhttp.Handler())
 	level.Info(logger).Log("msg", "Listening", "address", listenAddress)
-	level.Error(logger).Log(http.ListenAndServe(*listenAddress, nil))
+	level.Error(logger).Log("msg", "ListenAndServe exited", "err", http.ListenAndServe(*listenAddress, nil))
 }
