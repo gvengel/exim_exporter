@@ -206,9 +206,9 @@ func (e *Exporter) QueueSize() float64 {
 }
 
 func (e *Exporter) Start() {
-	go e.TailMainLog()
-	go e.TailRejectLog()
-	go e.TailPanicLog()
+	go e.TailMainLog(e.Tail(e.mainlog))
+	go e.TailRejectLog(e.Tail(e.rejectlog))
+	go e.TailPanicLog(e.Tail(e.paniclog))
 }
 
 func (e *Exporter) Tail(filename string) chan *tail.Line {
@@ -227,8 +227,8 @@ func (e *Exporter) Tail(filename string) chan *tail.Line {
 	return t.Lines
 }
 
-func (e *Exporter) TailMainLog() {
-	for line := range e.Tail(e.mainlog) {
+func (e *Exporter) TailMainLog(lines chan *tail.Line) {
+	for line := range lines {
 		level.Debug(e.logger).Log("file", "mainlong", "msg", line.Text)
 		parts := strings.SplitN(line.Text, " ", 6)
 		size := len(parts)
@@ -268,15 +268,15 @@ func (e *Exporter) TailMainLog() {
 	}
 }
 
-func (e *Exporter) TailRejectLog() {
-	for line := range e.Tail(e.rejectlog) {
+func (e *Exporter) TailRejectLog(lines chan *tail.Line) {
+	for line := range lines {
 		level.Debug(e.logger).Log("file", "rejectlog", "msg", line.Text)
 		eximReject.Inc()
 	}
 }
 
-func (e *Exporter) TailPanicLog() {
-	for line := range e.Tail(e.paniclog) {
+func (e *Exporter) TailPanicLog(lines chan *tail.Line) {
+	for line := range lines {
 		level.Debug(e.logger).Log("file", "paniclog", "msg", line.Text)
 		eximPanic.Inc()
 	}
