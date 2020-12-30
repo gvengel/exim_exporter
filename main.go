@@ -1,16 +1,21 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	stdlog "log"
+	"log/syslog"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"gopkg.in/alecthomas/kingpin.v2"
 
+	"github.com/coreos/go-systemd/sdjournal"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 
@@ -22,6 +27,18 @@ import (
 
 	"github.com/hpcloud/tail"
 	"github.com/shirou/gopsutil/process"
+)
+
+var (
+	mainlog          = kingpin.Flag("exim.mainlog", "Path to Exim main log file.").Default("/var/log/exim4/mainlog").Envar("EXIM_MAINLOG").String()
+	rejectlog        = kingpin.Flag("exim.rejectlog", "Path to Exim reject log file.").Default("/var/log/exim4/rejectlog").Envar("EXIM_REJECTLOG").String()
+	paniclog         = kingpin.Flag("exim.paniclog", "Path to Exim panic log file.").Default("/var/log/exim4/paniclog").Envar("EXIM_PANICLOG").String()
+	eximExec         = kingpin.Flag("exim.executable", "Name of the Exim daemon executable.").Default("exim4").Envar("EXIM_EXECUTABLE").String()
+	inputPath        = kingpin.Flag("exim.input-path", "Path to Exim queue directory.").Default("/var/spool/exim4/input").Envar("EXIM_QUEUE_DIR").String()
+	listenAddress    = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9636").Envar("WEB_LISTEN_ADDRESS").String()
+	metricsPath      = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").Envar("WEB_TELEMETRY_PATH").String()
+	useJournal       = kingpin.Flag("exim.use-journal", "Use the journal instead of log file tailing").Envar("EXIM_USE_JOURNAL").Bool()
+	syslogIdentifier = kingpin.Flag("exim.syslog-identifier", "Syslog identifier used by Exim").Default("exim").Envar("EXIM_SYSLOG_IDENTIFIER").String()
 )
 
 const BASE62 = "0123456789aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ"
@@ -59,6 +76,12 @@ var (
 		prometheus.CounterOpts{
 			Name: prometheus.BuildFQName("exim", "", "panic_total"),
 			Help: "Total number of logged panic messages",
+		},
+	)
+	readErrors = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: prometheus.BuildFQName("exim", "log_read", "errors"),
+			Help: "Total number of errors encountered while reading the logs",
 		},
 	)
 )
@@ -167,7 +190,6 @@ func (e *Exporter) ProcessStates() map[string]float64 {
 }
 
 func (e *Exporter) CountMessages(dirname string) float64 {
-	var count float64
 	dir, err := os.Open(dirname)
 	if err != nil {
 		return 0
@@ -177,6 +199,7 @@ func (e *Exporter) CountMessages(dirname string) float64 {
 	if err != nil {
 		return 0
 	}
+	var count float64
 	for _, name := range messages {
 		if len(name) == 18 && strings.HasSuffix(name, "-H") {
 			count += 1
@@ -187,8 +210,7 @@ func (e *Exporter) CountMessages(dirname string) float64 {
 
 func (e *Exporter) QueueSize() float64 {
 	level.Debug(e.logger).Log("msg", "Reading queue size")
-	var count float64
-	count += e.CountMessages(e.inputPath)
+	count := e.CountMessages(e.inputPath)
 	for h := 0; h < len(BASE62); h++ {
 		hashPath := filepath.Join(e.inputPath, string(BASE62[h]))
 		count += e.CountMessages(hashPath)
@@ -197,12 +219,18 @@ func (e *Exporter) QueueSize() float64 {
 }
 
 func (e *Exporter) Start() {
-	go e.TailMainLog()
-	go e.TailRejectLog()
-	go e.TailPanicLog()
+	if *useJournal {
+		go e.TailMainLog(e.JournalTail(*syslogIdentifier, syslog.LOG_INFO))
+		go e.TailRejectLog(e.JournalTail(*syslogIdentifier, syslog.LOG_NOTICE))
+		go e.TailPanicLog(e.JournalTail(*syslogIdentifier, syslog.LOG_ALERT))
+	} else {
+		go e.TailMainLog(e.FileTail(e.mainlog))
+		go e.TailRejectLog(e.FileTail(e.rejectlog))
+		go e.TailPanicLog(e.FileTail(e.paniclog))
+	}
 }
 
-func (e *Exporter) Tail(filename string) *tail.Tail {
+func (e *Exporter) FileTail(filename string) chan *tail.Line {
 	level.Info(e.logger).Log("msg", "Opening log", "filename", filename)
 	logger := log.NewStdlibAdapter(e.logger)
 	t, err := tail.TailFile(filename, tail.Config{
@@ -215,23 +243,93 @@ func (e *Exporter) Tail(filename string) *tail.Tail {
 		level.Error(e.logger).Log("msg", "Unable to open log", "err", err)
 		os.Exit(1)
 	}
-	return t
+	return t.Lines
 }
 
-func (e *Exporter) TailMainLog() {
-	var (
-		index int
-		size  int
-	)
-	t := e.Tail(e.mainlog)
-	for line := range t.Lines {
+func (e *Exporter) JournalTail(identifier string, priority syslog.Priority) chan *tail.Line {
+	j, err := sdjournal.NewJournal()
+	if err != nil {
+		level.Error(e.logger).Log("msg", "Unable to open journal", "err", err)
+		os.Exit(1)
+	}
+	if err := j.AddMatch(fmt.Sprintf("PRIORITY=%d", priority)); err != nil {
+		level.Error(e.logger).Log("msg", "Could not setup priority journal match", "err", err)
+		os.Exit(1)
+	}
+	if err := j.AddMatch(fmt.Sprintf("SYSLOG_IDENTIFIER=%s", identifier)); err != nil {
+		level.Error(e.logger).Log("msg", "Could not setup syslog identifier journal match", "err", err)
+		os.Exit(1)
+	}
+	if err := j.SeekTail(); err != nil {
+		level.Error(e.logger).Log("msg", "Could not seek to journal tail", "err", err)
+		os.Exit(1)
+	}
+	// Apparently we need to go one back to avoid getting older entries from before we start.
+	// This looks like a bug in the library.
+	if _, err := j.Previous(); err != nil {
+		level.Error(e.logger).Log("msg", "Could not advance one journal entry", "err", err)
+		os.Exit(1)
+	}
+
+	lines := make(chan *tail.Line)
+	go func() {
+		defer func() {
+			close(lines)
+			if err := j.Close(); err != nil {
+				level.Error(e.logger).Log("msg", "Could not close journal", "err", err)
+			}
+		}()
+
+		for {
+			if ret, err := j.Next(); err != nil {
+				lines <- &tail.Line{
+					Err: fmt.Errorf("could not call Next(): %w", err),
+				}
+				return
+			} else if ret == 0 {
+				// End of journal, wait for a new entry to be written.
+				for r := j.Wait(sdjournal.IndefiniteWait); r == sdjournal.SD_JOURNAL_NOP; {
+				}
+				continue
+			}
+			je, err := j.GetEntry()
+			if err != nil {
+				lines <- &tail.Line{
+					Err: fmt.Errorf("could not GetEntry(): %w", err),
+				}
+				continue
+			}
+			text, ok := je.Fields["MESSAGE"]
+			if !ok {
+				lines <- &tail.Line{
+					Err: errors.New("got journal entry without MESSAGE set"),
+				}
+				continue
+			}
+			lines <- &tail.Line{
+				Text: text,
+				Time: time.Unix(int64(je.RealtimeTimestamp/10e6), int64(je.RealtimeTimestamp%10e6*1000)),
+			}
+		}
+	}()
+	return lines
+}
+
+func (e *Exporter) TailMainLog(lines chan *tail.Line) {
+	for line := range lines {
+		if line.Err != nil {
+			level.Error(e.logger).Log("msg", "Caught error while reading mainlog", "err", line.Err)
+			readErrors.Inc()
+			continue
+		}
 		level.Debug(e.logger).Log("file", "mainlong", "msg", line.Text)
 		parts := strings.SplitN(line.Text, " ", 6)
-		size = len(parts)
+		size := len(parts)
 		if size < 3 {
 			continue
 		}
 		// Handle logs when PID logging is enabled
+		var index int
 		if parts[2][0] == '[' {
 			index = 4
 		} else {
@@ -263,17 +361,25 @@ func (e *Exporter) TailMainLog() {
 	}
 }
 
-func (e *Exporter) TailRejectLog() {
-	t := e.Tail(e.rejectlog)
-	for line := range t.Lines {
+func (e *Exporter) TailRejectLog(lines chan *tail.Line) {
+	for line := range lines {
+		if line.Err != nil {
+			level.Error(e.logger).Log("msg", "Caught error while reading rejectlog", "err", line.Err)
+			readErrors.Inc()
+			continue
+		}
 		level.Debug(e.logger).Log("file", "rejectlog", "msg", line.Text)
 		eximReject.Inc()
 	}
 }
 
-func (e *Exporter) TailPanicLog() {
-	t := e.Tail(e.paniclog)
-	for line := range t.Lines {
+func (e *Exporter) TailPanicLog(lines chan *tail.Line) {
+	for line := range lines {
+		if line.Err != nil {
+			level.Error(e.logger).Log("msg", "Caught error while reading paniclog", "err", line.Err)
+			readErrors.Inc()
+			continue
+		}
 		level.Debug(e.logger).Log("file", "paniclog", "msg", line.Text)
 		eximPanic.Inc()
 	}
@@ -284,18 +390,10 @@ func init() {
 	prometheus.MustRegister(eximMessages)
 	prometheus.MustRegister(eximReject)
 	prometheus.MustRegister(eximPanic)
+	prometheus.MustRegister(readErrors)
 }
 
 func main() {
-	var (
-		mainlog       = kingpin.Flag("exim.mainlog", "Path to Exim main log file.").Default("/var/log/exim4/mainlog").Envar("EXIM_MAINLOG").String()
-		rejectlog     = kingpin.Flag("exim.rejectlog", "Path to Exim reject log file.").Default("/var/log/exim4/rejectlog").Envar("EXIM_REJECTLOG").String()
-		paniclog      = kingpin.Flag("exim.paniclog", "Path to Exim panic log file.").Default("/var/log/exim4/paniclog").Envar("EXIM_PANICLOG").String()
-		eximExec      = kingpin.Flag("exim.executable", "Name of the Exim daemon executable.").Default("exim4").Envar("EXIM_EXECUTABLE").String()
-		inputPath     = kingpin.Flag("exim.input-path", "Path to Exim queue directory.").Default("/var/spool/exim4/input").Envar("EXIM_QUEUE_DIR").String()
-		listenAddress = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9636").Envar("WEB_LISTEN_ADDRESS").String()
-		metricsPath   = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").Envar("WEB_TELEMETRY_PATH").String()
-	)
 	promlogConfig := &promlog.Config{}
 	flag.AddFlags(kingpin.CommandLine, promlogConfig)
 	kingpin.HelpFlag.Short('h')
@@ -332,5 +430,5 @@ func main() {
 	})
 	http.Handle(*metricsPath, promhttp.Handler())
 	level.Info(logger).Log("msg", "Listening", "address", listenAddress)
-	level.Error(logger).Log(http.ListenAndServe(*listenAddress, nil))
+	level.Error(logger).Log("msg", "ListenAndServe exited", "err", http.ListenAndServe(*listenAddress, nil))
 }
