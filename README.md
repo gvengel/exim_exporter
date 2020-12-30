@@ -11,10 +11,10 @@ and observing running exim processes.
 Download and run the latest binary from the [releases tab](https://github.com/gvengel/exim_exporter/releases/latest). 
 
 ```shell script
-.\exim_exporter 
+./exim_exporter
 ```
 
-The exporter will need read access to exim's log and spool directories. 
+The exporter will need read access to exim's logs and its spool directory.
 Therefore, it is recommended to run as the same user as the exim server.
 
 Alternately, a simple Debian package is provided which installs the exporter as a service.
@@ -27,12 +27,21 @@ dpkg -i prometheus-exim-exporter*.deb
 
 By default, the exporter serves on port `9636` at `/metrics`. 
 
-The exporter requires paths to your exim server logs and input spool (mail queue). The default settings
-are configured for Debian/Ubuntu servers. Running the exporter on other distributions may require
-manually configuring the paths.
+The exporter has two modes:
 
-See `--help` for more details. 
-Note, command line arguments can also be set via environment variable. e.g `--exim.mainlog` -> `EXIM_MAINLOG`.
+1. The default mode is to process the log files appended to by exim by tailing
+   them. The default is good for Debian/Ubuntu servers which store the logs in
+   `/var/log/exim4`. Running in this mode on other distributions may require
+   manually configuring the paths.
+2. The second mode utilizes the systemd journal, tailing it for any log lines
+   sent with the syslog identifier `exim` (configurable). This mode can be
+   enabled using `--exim.use-journald`.
+
+In both modes the exporter will additionally poll your spool directory to
+determine the length of the mail queue.
+
+See `--help` for more details. Command line arguments can also be set via
+environment variable. e.g `--exim.mainlog` -> `EXIM_MAINLOG`.
 
 ## Building
 
@@ -44,7 +53,7 @@ make
 
 See example metrics in [tests](https://github.com/gvengel/exim_exporter/blob/master/test/update.metrics).
 
-### exim_messages_total
+### `exim_messages_total`
 
 This stat is calculated by tailing the exim mainlog and returning a counter with labels for each
 [log message flag](https://www.exim.org/exim-html-current/doc/html/spec_html/ch-log_files.html#SECID250). 
@@ -62,11 +71,11 @@ An additional label is added for messages marked as completed.
 | deferred   | ==        |
 | completed  | Completed |
 		
-### exim_reject_total and exim_panic_total 
+### `exim_reject_total` and `exim_panic_total `
 
 These stats are calculated by tailing the rejectlog and paniclog, returning counter for the number of lines in each.
 
-### exim_processes
+### `exim_processes`
 
 This metric returns the number of running exim process, labeled by process state.
 The state is detected by parsing the process's command line and looking for know arguments.
@@ -81,10 +90,14 @@ While this method doesn't provide the same detail as `exiwhat`, that tool is
 | running    | exim -qG   |
 | other      | other      | 
 
-### exim_queue
+### `exim_queue`
 
 This metric reports the equivalent of `exim -bpc`. Note, the value is calculated by independently parsing the queue, not forking to exim.
 
-### exim_up
+### `exim_up`
 
 Whether the main exim daemon is running.
+
+## `exim_log_read_errors`
+
+This metrics reports any failures encountered while tailing the logs.
