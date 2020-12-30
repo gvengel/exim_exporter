@@ -1,3 +1,9 @@
+prometheus-exim-exporter (1.2.0) xenial; urgency=medium
+
+  * Add support for systems logging to journald. @pkern 
+
+ -- Gabe Van Engel <gabe@schizoid.net>  Wed, 30 Dec 2020 14:05:11 -0800
+
 prometheus-exim-exporter (1.1.0) xenial; urgency=medium
 
   * Add support for logs with the pid field enabled.
