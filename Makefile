@@ -2,6 +2,7 @@
 
 all: fmt vet test build build-deb
 
+ARCH ?= amd64
 VERSION = $(shell dpkg-parsechangelog --show-field Version)
 REVISION = $(shell git rev-parse --short HEAD)
 BRANCH = $(shell git rev-parse --abbrev-ref HEAD)
@@ -15,13 +16,13 @@ fmt:
 	go fmt .
 
 vet:
-	go vet -v .
+	go vet .
 
 test:
 	go test -v .
 
 build:
-	GOOS=linux go build -v -o exim_exporter -ldflags "$(LDFLAGS)" .
+	GOOS=linux GOARCH=$(ARCH) go build -v -o exim_exporter -ldflags "$(LDFLAGS)" .
 
 build-deb:
 	mkdir $(BUILD_DIR)
@@ -32,4 +33,3 @@ build-deb:
 
 clean:
 	rm -f exim_exporter prometheus-exim-exporter_*.deb
-
