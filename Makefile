@@ -2,7 +2,9 @@
 
 all: fmt vet test build build-deb
 
+GOOS ?= linux
 ARCH ?= amd64
+TAGS ?= systemd
 VERSION = $(shell dpkg-parsechangelog --show-field Version)
 REVISION = $(shell git rev-parse --short HEAD)
 BRANCH = $(shell git rev-parse --abbrev-ref HEAD)
@@ -22,7 +24,7 @@ test:
 	go test -v .
 
 build:
-	GOOS=linux GOARCH=$(ARCH) go build -v -o exim_exporter -ldflags "$(LDFLAGS)" .
+	GOOS=$(GOOS) GOARCH=$(ARCH) go build -v -o exim_exporter -tags $(TAGS) -ldflags "$(LDFLAGS)" .
 
 build-deb:
 	mkdir $(BUILD_DIR)
