@@ -1,6 +1,12 @@
+prometheus-exim-exporter (1.2.1) xenial; urgency=medium
+
+  * Make systemd an optional dependency.
+
+ -- Gabe Van Engel <gabe@schizoid.net>  Fri, 22 Jan 2021 00:06:36 -0800
+
 prometheus-exim-exporter (1.2.0) xenial; urgency=medium
 
-  * Add support for systems logging to journald. @pkern 
+  * Add support for systems logging to journald. @pkern
 
  -- Gabe Van Engel <gabe@schizoid.net>  Wed, 30 Dec 2020 14:05:11 -0800
 
