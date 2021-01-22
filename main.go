@@ -241,6 +241,8 @@ func (e *Exporter) FileTail(filename string) chan *tail.Line {
 	return t.Lines
 }
 
+// JournalTail conditionally defined based on the "systemd" build tag.
+
 func (e *Exporter) TailMainLog(lines chan *tail.Line) {
 	for line := range lines {
 		if line.Err != nil {
