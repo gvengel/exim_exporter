@@ -81,7 +81,3 @@ func (e *Exporter) JournalTail(identifier string, priority syslog.Priority) chan
 	}()
 	return lines
 }
-
-func init() {
-
-}
