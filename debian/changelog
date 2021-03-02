@@ -1,3 +1,9 @@
+prometheus-exim-exporter (1.2.2) xenial; urgency=medium
+
+  * Add option to tail files via polling instead of inotify.
+
+ -- Gabe Van Engel <gabe@schizoid.net>  Mon, 01 Mar 2021 23:19:54 -0800
+
 prometheus-exim-exporter (1.2.1) xenial; urgency=medium
 
   * Make systemd an optional dependency.
