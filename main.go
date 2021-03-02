@@ -34,6 +34,7 @@ var (
 	metricsPath      = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").Envar("WEB_TELEMETRY_PATH").String()
 	useJournal       = kingpin.Flag("exim.use-journal", "Use the journal instead of log file tailing").Envar("EXIM_USE_JOURNAL").Bool()
 	syslogIdentifier = kingpin.Flag("exim.syslog-identifier", "Syslog identifier used by Exim").Default("exim").Envar("EXIM_SYSLOG_IDENTIFIER").String()
+	tailPoll         = kingpin.Flag("tail.poll", "Poll logs for changes instead of using inotify.").Envar("TAIL_POLL").Bool()
 )
 
 const BASE62 = "0123456789aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ"
@@ -232,6 +233,7 @@ func (e *Exporter) FileTail(filename string) chan *tail.Line {
 		Location: &tail.SeekInfo{Whence: io.SeekEnd},
 		ReOpen:   true,
 		Follow:   true,
+		Poll:     *tailPoll,
 		Logger:   stdlog.New(logger, "", stdlog.LstdFlags),
 	})
 	if err != nil {
