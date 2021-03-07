@@ -17,7 +17,7 @@ RUN VERSION="$(dpkg-parsechangelog --show-field Version)"; \
     LDFLAGS="-X github.com/prometheus/common/version.Version=${VERSION} \
              -X github.com/prometheus/common/version.Revision=${REVISION} \
              -X github.com/prometheus/common/version.Branch=${BRANCH}"; \
-    go build -v -o exim_exporter -ldflags "$LDFLAGS".
+    go build -v -o exim_exporter -ldflags "$LDFLAGS"
 
 WORKDIR /dist
 RUN cp /src/exim_exporter .
