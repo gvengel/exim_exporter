@@ -1,29 +1,43 @@
-language: go
-go:
-  - 1.x
 dist: xenial
-addons:
-  apt:
-    packages:
-      - devscripts
-      - dh-make
-      - dh-systemd
-      - fakeroot
-      - debhelper
-      - libsystemd-dev
 before_install:
   - export VERSION=$(dpkg-parsechangelog --show-field Version)
 stages:
   - name: deploy
     if: tag = concat("v", env(VERSION))
-deploy:
-  edge: true
-  provider: releases
-  token:
-    secure: WM/n49DHfhHVehaNBsXsSLURAWhkNfXW4T7VBowXg6a3gyYZ9k0zzhREHGw8uyXMm7UpCWd4K4DdH5g1yQWWBRWSyBurm7ZBoYRAq2sRavPbWGxDSNCsPHDyzD87Q05+EmB+gCwQGv9N+59iBUJ8S1a0Vb7FI7Z9VmMCauTOKlrNDx9Aoh4d+S6TK+56qzJ9k/HAiT5aQK3NnfxLJc+nTfMcVejN3uH36bJVj5TN3pqS+AlbkEox3SWg9774gZaKzAJUCQ8BfUgPXgIwmnK+AvfAy+Fy+7QkMq1dqTaMd5J40zappoMpOMzfSL6K9BHhV6hv4NWCbxIm9JsQoh1M8DrKKsiXpA0a9yMXvv+ZJ3VXOg/ecbELY0J/394vr17R7ckmeL2dG+gv1yBrUHwJTaE8eta4NscY986Rf32rbhcNxxwdrreKzku0iNKOlh7NwzxWeISyU9Um9Svdn1bwHLKrK8LMXc3WCV0w+8OJFOLTQ5swHElT0CR5epgNHCyn/CpKpkfr99Wc1/ltg7oNhhyqYC0yIfDFiLw2ezuN0+MVpI5tCBRmoKOCzmzJELTd2nrR5F2kRAMHOmFpuKefBw/TxlfFVsiD203t7ZFTGiqAfQyAfPbgH9oKhPJwtWznOnJsb8t5JFpZrTjq6WN107MOI17fRYmchiXvFvVR46c=
-  on:
-    tags: true
-  file:
-    - exim_exporter
-    - prometheus-exim-exporter_${VERSION}_amd64.deb
-  overwrite: true
+jobs:
+  include:
+    - language: go
+      go:
+        - 1.x
+      addons:
+        apt:
+          packages:
+            - devscripts
+            - dh-make
+            - dh-systemd
+            - fakeroot
+            - debhelper
+            - libsystemd-dev
+      deploy:
+        edge: true
+        provider: releases
+        token:
+          secure: WM/n49DHfhHVehaNBsXsSLURAWhkNfXW4T7VBowXg6a3gyYZ9k0zzhREHGw8uyXMm7UpCWd4K4DdH5g1yQWWBRWSyBurm7ZBoYRAq2sRavPbWGxDSNCsPHDyzD87Q05+EmB+gCwQGv9N+59iBUJ8S1a0Vb7FI7Z9VmMCauTOKlrNDx9Aoh4d+S6TK+56qzJ9k/HAiT5aQK3NnfxLJc+nTfMcVejN3uH36bJVj5TN3pqS+AlbkEox3SWg9774gZaKzAJUCQ8BfUgPXgIwmnK+AvfAy+Fy+7QkMq1dqTaMd5J40zappoMpOMzfSL6K9BHhV6hv4NWCbxIm9JsQoh1M8DrKKsiXpA0a9yMXvv+ZJ3VXOg/ecbELY0J/394vr17R7ckmeL2dG+gv1yBrUHwJTaE8eta4NscY986Rf32rbhcNxxwdrreKzku0iNKOlh7NwzxWeISyU9Um9Svdn1bwHLKrK8LMXc3WCV0w+8OJFOLTQ5swHElT0CR5epgNHCyn/CpKpkfr99Wc1/ltg7oNhhyqYC0yIfDFiLw2ezuN0+MVpI5tCBRmoKOCzmzJELTd2nrR5F2kRAMHOmFpuKefBw/TxlfFVsiD203t7ZFTGiqAfQyAfPbgH9oKhPJwtWznOnJsb8t5JFpZrTjq6WN107MOI17fRYmchiXvFvVR46c=
+        on:
+          tags: true
+        file:
+          - exim_exporter
+          - prometheus-exim-exporter_${VERSION}_amd64.deb
+        overwrite: true
+    - script: docker build -t exim_exporter .
+      env:
+        global:
+          secure: bSRxAnERR3jWcIO1bOwUObP2UZBSXxj2LdOs8TjZVTvKLPlaNPOEa5gTRHIvQ/yd5I/DMysrp3ThJgad27OSuYthizwCxTQHux46YLyR4W6NL5TyBEAcHwAjgv9d49/b9z7gM/tNyTCBTku1o/jZh/Z6iH2+JXWnjNySjpVfGtMp+/A1+OssxlAAFTxl7bTS03aFuZkdIn+mpHhOdGotdRw3FKOOweh7zuMEWx3TrxfYhQj6ujfEvwra1z3SSaBxnnKw4M+k6q5bs9Hn+/7Ng8Eny95hcO/jnSXISbIAqMQ/Zygn53DmvnzjWttac7cg+OxEJC3e80/zMSWKzvkAQla3rckM2Bv8wfCrFYXa/eA/jfT5bhT7tymHF5UkpAsRuEtvL3cPvt1G/YnRPe1A0TNQO76nEPG43oVv4KxAJRheiteVWFC4v8aFMu2XMxEYYUsPJpp9ms6s1OMioHM1QnqkfrRXtsf6+M8Rp6SPJ0vDdEnSWRBvXNUqUXcUIgefcHe9PmURBcza2MDMd0yj+tXzD6Dav/lYQv/yN3i2/uwwbs4EyBOGa9KcHbrUd1AxCIClnLQvhjRdMwQtNzK2UCmvY0ooPPvwOWEEe8sspSvT9li2QiaCQkkNLotDcjyHPscAT841eR5xhVIl28X6WKb9B6C+URyzpEA7N/TJbEs=
+      deploy:
+        provider: script
+        script:
+          - echo "$DOCKER_PASSWORD" | docker login -u gvengel --password-stdin
+          - docker tag exim_exporter gvengel/exim_exporter
+          - docker push gvengel/exim_exporter
+        on:
+          tags: true
