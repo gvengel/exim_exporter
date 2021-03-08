@@ -1,0 +1,23 @@
+version: '2'
+volumes:
+  exim_log:
+  exim_queue:
+services:
+  exim:
+    image: camptocamp/exim
+    environment:
+      - POSTMASTER=postmaster@foo.com
+      - MAILNAME=foo.com
+    ports:
+      - "2525:25"
+    volumes:
+      - exim_log:/var/log/exim4
+      - exim_queue:/var/spool/exim4
+  exim_exporter:
+    image: gvengel/exim_exporter
+    ports:
+      - "9636:9636"
+    volumes:
+      - exim_log:/var/log/exim4  # Enables message stats
+      - exim_queue:/var/spool/exim4  # Enables queue stats
+    pid: service:exim  # Enables process stats
