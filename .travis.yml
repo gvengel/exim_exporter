@@ -29,16 +29,16 @@ jobs:
           - exim_exporter
           - prometheus-exim-exporter_${VERSION}_amd64.deb
         overwrite: true
-    - script: docker build -t exim_exporter .
+    - language: minimal
       env:
         secure: bSRxAnERR3jWcIO1bOwUObP2UZBSXxj2LdOs8TjZVTvKLPlaNPOEa5gTRHIvQ/yd5I/DMysrp3ThJgad27OSuYthizwCxTQHux46YLyR4W6NL5TyBEAcHwAjgv9d49/b9z7gM/tNyTCBTku1o/jZh/Z6iH2+JXWnjNySjpVfGtMp+/A1+OssxlAAFTxl7bTS03aFuZkdIn+mpHhOdGotdRw3FKOOweh7zuMEWx3TrxfYhQj6ujfEvwra1z3SSaBxnnKw4M+k6q5bs9Hn+/7Ng8Eny95hcO/jnSXISbIAqMQ/Zygn53DmvnzjWttac7cg+OxEJC3e80/zMSWKzvkAQla3rckM2Bv8wfCrFYXa/eA/jfT5bhT7tymHF5UkpAsRuEtvL3cPvt1G/YnRPe1A0TNQO76nEPG43oVv4KxAJRheiteVWFC4v8aFMu2XMxEYYUsPJpp9ms6s1OMioHM1QnqkfrRXtsf6+M8Rp6SPJ0vDdEnSWRBvXNUqUXcUIgefcHe9PmURBcza2MDMd0yj+tXzD6Dav/lYQv/yN3i2/uwwbs4EyBOGa9KcHbrUd1AxCIClnLQvhjRdMwQtNzK2UCmvY0ooPPvwOWEEe8sspSvT9li2QiaCQkkNLotDcjyHPscAT841eR5xhVIl28X6WKb9B6C+URyzpEA7N/TJbEs=
+      script: docker build -t exim_exporter .
+      before_deploy:
+        - echo "$DOCKER_PASSWORD" | docker login -u gvengel --password-stdin
+        - docker tag exim_exporter gvengel/exim_exporter:latest
+        - docker tag exim_exporter gvengel/exim_exporter:${VERSION}
       deploy:
         provider: script
-        script:
-          - echo "$DOCKER_PASSWORD" | docker login -u gvengel --password-stdin
-          - docker tag exim_exporter gvengel/exim_exporter
-          - docker push gvengel/exim_exporter
-          - docker tag exim_exporter gvengel/exim_exporter:${VERSION}
-          - docker push gvengel/exim_exporter:${VERSION}
+        script: docker push gvengel/exim_exporter:latest && docker push gvengel/exim_exporter:${VERSION}
         on:
           tags: true

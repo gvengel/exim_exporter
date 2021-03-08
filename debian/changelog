@@ -1,3 +1,10 @@
+prometheus-exim-exporter (1.3.0) xenial; urgency=medium
+
+  * Add option to use an alternate exim log path for all log files.
+  * Add official docker images.
+
+ -- Gabe Van Engel <gabe@schizoid.net>  Sun, 07 Mar 2021 17:14:32 -0800
+
 prometheus-exim-exporter (1.2.2) xenial; urgency=medium
 
   * Add option to tail files via polling instead of inotify.
