@@ -107,7 +107,7 @@ This metrics reports any failures encountered while tailing the logs.
 Docker images are available on [docker hub](https://hub.docker.com/r/gvengel/exim_exporter). 
 
 For full functionality the exporter needs access to exim's log files, spool directory, and process list. 
-Example usage, where exim is also running in a container named `exim4`:
+If you were running your MTA in a container named `exim4`, usage might look something like:
 
 ```
 docker run 
@@ -119,4 +119,4 @@ docker run
   gvengel/exim_exporter
 ```
 
-Also see the provided [docker-compose.yml](docker-compose.yml) example.
+Also see the provided [docker-compose](docker-compose.yml) example.
