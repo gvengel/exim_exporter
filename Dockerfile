@@ -25,3 +25,4 @@ RUN cp /src/exim_exporter .
 FROM scratch
 COPY --from=builder /dist/exim_exporter /
 ENTRYPOINT ["/exim_exporter"]
+EXPOSE 9636
