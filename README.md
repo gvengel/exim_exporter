@@ -101,3 +101,22 @@ Whether the main exim daemon is running.
 ## `exim_log_read_errors`
 
 This metrics reports any failures encountered while tailing the logs.
+
+## Docker
+
+Docker images are available on [docker hub](https://hub.docker.com/r/gvengel/exim_exporter). 
+
+For full functionality the exporter needs access to exim's log files, spool directory, and process list. 
+Example usage, where exim is also running in a container named `exim4`:
+
+```
+docker run 
+  -p 9636:9636 \
+  -v /var/log/exim4:/var/log/exim4 \
+  -v /var/spool/exim4:/var/spool/exim4 \
+  --pid container:exim4 \
+  --name exim_exporter \
+  gvengel/exim_exporter
+```
+
+Also see the provided [docker-compose.yml](docker-compose.yml) example.
