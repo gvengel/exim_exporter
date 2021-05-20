@@ -92,6 +92,7 @@ var processFlags = map[string]string{
 type Process struct {
 	cmdline []string
 	ppid    int32
+	pid     int32
 }
 
 // map globals we can override in tests
@@ -111,7 +112,7 @@ var (
 			if err != nil {
 				continue
 			}
-			result = append(result, &Process{cmdline, ppid})
+			result = append(result, &Process{cmdline, ppid, p.Pid})
 		}
 		return result, nil
 	}
@@ -174,7 +175,7 @@ func (e *Exporter) ProcessStates() map[string]float64 {
 		if len(p.cmdline) < 2 {
 			states["other"] += 1
 		} else if state, ok := processFlags[p.cmdline[1]]; ok {
-			if state == "handling" && p.ppid == 1 {
+			if state == "handling" && (p.ppid == 1 || p.pid == 1) {
 				states["daemon"] += 1
 			} else {
 				states[state] += 1
