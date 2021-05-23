@@ -155,7 +155,7 @@ func TestMetrics(t *testing.T) {
 
 	getProcesses = func() ([]*Process, error) {
 		return []*Process{
-			{[]string{"/bin/bash", "-x"}, 1, 42},
+			{[]string{"/bin/bash", "-x"}, false},
 		}, nil
 	}
 	t.Run("down", func(t *testing.T) {
@@ -173,16 +173,16 @@ func TestMetrics(t *testing.T) {
 	}
 	getProcesses = func() ([]*Process, error) {
 		return []*Process{
-			{[]string{"/bin/bash", "-x"}, 7, 4001},
-			{[]string{"/usr/sbin/exim4"}, 2202, 4002},
-			{[]string{"/usr/sbin/exim4", "-q30m"}, 2203, 4003},
-			{[]string{"/usr/sbin/exim4", "-bd"}, 1, 4004},
-			{[]string{"/usr/sbin/exim4", "-qG"}, 2211, 4005},
-			{[]string{"/usr/sbin/exim4", "-Mc", "1jofsL-0006tb-8D"}, 2309, 4006},
-			{[]string{"/usr/sbin/exim4", "-Mc", "1jofsL-0006tb-8D"}, 2315, 4007},
-			{[]string{"/usr/sbin/exim4", "-bd"}, 3147, 4008},
-			{[]string{"/usr/sbin/exim4", "-bd"}, 3148, 4009},
-			{[]string{"/usr/sbin/exim4", "-bd"}, 3149, 4010},
+			{[]string{"/bin/bash", "-x"}, false},
+			{[]string{"/usr/sbin/exim4"}, false},
+			{[]string{"/usr/sbin/exim4", "-q30m"}, false},
+			{[]string{"/usr/sbin/exim4", "-bd"}, true},
+			{[]string{"/usr/sbin/exim4", "-qG"}, false},
+			{[]string{"/usr/sbin/exim4", "-Mc", "1jofsL-0006tb-8D"}, false},
+			{[]string{"/usr/sbin/exim4", "-Mc", "1jofsL-0006tb-8D"}, false},
+			{[]string{"/usr/sbin/exim4", "-bd"}, false},
+			{[]string{"/usr/sbin/exim4", "-bd"}, false},
+			{[]string{"/usr/sbin/exim4", "-bd"}, false},
 		}, nil
 	}
 	t.Run("up", func(t *testing.T) {

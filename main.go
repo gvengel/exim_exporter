@@ -10,6 +10,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
@@ -91,8 +92,7 @@ var processFlags = map[string]string{
 
 type Process struct {
 	cmdline []string
-	ppid    int32
-	pid     int32
+	leader  bool
 }
 
 // map globals we can override in tests
@@ -108,11 +108,13 @@ var (
 			if err != nil {
 				continue
 			}
-			ppid, err := p.Ppid()
+			pid := int(p.Pid)
+			pgid, err := syscall.Getpgid(pid)
 			if err != nil {
 				continue
 			}
-			result = append(result, &Process{cmdline, ppid, p.Pid})
+			leader := pid == pgid
+			result = append(result, &Process{cmdline, leader})
 		}
 		return result, nil
 	}
@@ -175,7 +177,7 @@ func (e *Exporter) ProcessStates() map[string]float64 {
 		if len(p.cmdline) < 2 {
 			states["other"] += 1
 		} else if state, ok := processFlags[p.cmdline[1]]; ok {
-			if state == "handling" && (p.ppid == 1 || p.pid == 1) {
+			if state == "handling" && p.leader {
 				states["daemon"] += 1
 			} else {
 				states[state] += 1
