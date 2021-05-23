@@ -1,4 +1,4 @@
-dist: xenial
+dist: bionic
 before_install:
   - export VERSION=$(dpkg-parsechangelog --show-field Version)
 stages:
