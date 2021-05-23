@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: smtp-pod
+  labels:
+    component: smtp
+spec:
+  shareProcessNamespace: true
+
+  volumes:
+    - name: exim-log
+      emptyDir: { }
+    - name: exim-spool
+      emptyDir: { }
+
+  containers:
+    - name: exim
+      image: camptocamp/exim
+      env:
+        - name: POSTMASTER
+          value: postmaster@foo.com
+        - name: MAILNAME
+          value: foo.com
+      ports:
+        - containerPort: 25
+      volumeMounts:
+        - name: exim-log
+          mountPath: /var/log/exim4
+        - name: exim-spool
+          mountPath: /var/spool/exim4
+
+    - name: exporter
+      image: gvengel/exim_exporter  # version tag recommended
+      imagePullPolicy: Never
+      ports:
+        - containerPort: 9636
+      volumeMounts:
+        - name: exim-log
+          mountPath: /var/log/exim4
+        - name: exim-spool
+          mountPath: /var/spool/exim4
