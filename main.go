@@ -332,6 +332,7 @@ func init() {
 func main() {
 	promlogConfig := &promlog.Config{}
 	flag.AddFlags(kingpin.CommandLine, promlogConfig)
+	kingpin.Version(version.Print("exim_exporter"))
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
 	logger := promlog.New(promlogConfig)
