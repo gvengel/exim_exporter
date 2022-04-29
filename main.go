@@ -1,7 +1,6 @@
 package main
 
 import (
-	"gopkg.in/alecthomas/kingpin.v2"
 	"io"
 	stdlog "log"
 	"log/syslog"
@@ -14,12 +13,14 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
+	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/promlog"
 	"github.com/prometheus/common/promlog/flag"
 	"github.com/prometheus/common/version"
+	"github.com/prometheus/exporter-toolkit/web"
 
 	"github.com/hpcloud/tail"
 	"github.com/shirou/gopsutil/process"
@@ -37,6 +38,7 @@ var (
 	useJournal       = kingpin.Flag("exim.use-journal", "Use the journal instead of log file tailing").Envar("EXIM_USE_JOURNAL").Bool()
 	syslogIdentifier = kingpin.Flag("exim.syslog-identifier", "Syslog identifier used by Exim").Default("exim").Envar("EXIM_SYSLOG_IDENTIFIER").String()
 	tailPoll         = kingpin.Flag("tail.poll", "Poll logs for changes instead of using inotify.").Envar("TAIL_POLL").Bool()
+	configFile       = kingpin.Flag("web.config", "Path to config yaml file that can enable TLS or authentication.").Default("").String()
 )
 
 const BASE62 = "0123456789aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ"
@@ -374,5 +376,10 @@ func main() {
 	})
 	http.Handle(*metricsPath, promhttp.Handler())
 	level.Info(logger).Log("msg", "Listening", "address", listenAddress)
-	level.Error(logger).Log("msg", "ListenAndServe exited", "err", http.ListenAndServe(*listenAddress, nil))
+
+	server := &http.Server{Addr: *listenAddress}
+	if err := web.ListenAndServe(server, *configFile, logger); err != nil {
+		level.Error(logger).Log("err", err)
+		os.Exit(1)
+	}
 }

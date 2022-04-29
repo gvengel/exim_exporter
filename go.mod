@@ -12,13 +12,12 @@ require (
 	github.com/hpcloud/tail v1.0.0
 	github.com/kr/logfmt v0.0.0-20210122060352-19f9bcb100e6 // indirect
 	github.com/mitchellh/go-ps v1.0.0
-	github.com/prometheus/client_golang v1.9.0
-	github.com/prometheus/common v0.18.0
+	github.com/prometheus/client_golang v1.11.0
+	github.com/prometheus/common v0.29.0
+	github.com/prometheus/exporter-toolkit v0.7.1 // indirect
 	github.com/prometheus/procfs v0.6.0 // indirect
 	github.com/shirou/gopsutil v3.21.2+incompatible
 	github.com/tklauser/go-sysconf v0.3.4 // indirect
-	golang.org/x/sys v0.0.0-20210301091718-77cc2087c03b // indirect
-	google.golang.org/protobuf v1.25.0 // indirect
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
