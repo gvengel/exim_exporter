@@ -128,16 +128,18 @@ type Exporter struct {
 	paniclog  string
 	eximBin   string
 	inputPath string
+	logLevel  string
 	logger    log.Logger
 }
 
-func NewExporter(mainlog string, rejectlog string, paniclog string, eximExec string, inputPath string, logger log.Logger) *Exporter {
+func NewExporter(mainlog, rejectlog, paniclog, eximExec, inputPath, logLevel string, logger log.Logger) *Exporter {
 	return &Exporter{
 		mainlog,
 		rejectlog,
 		paniclog,
 		eximExec,
 		inputPath,
+		logLevel,
 		logger,
 	}
 }
@@ -234,13 +236,19 @@ func (e *Exporter) Start() {
 
 func (e *Exporter) FileTail(filename string) chan *tail.Line {
 	level.Info(e.logger).Log("msg", "Opening log", "filename", filename)
-	logger := log.NewStdlibAdapter(e.logger)
+	var logger *stdlog.Logger
+	if e.logLevel == "debug" || e.logLevel == "info" {
+		adapter := log.NewStdlibAdapter(e.logger)
+		logger = stdlog.New(adapter, "", stdlog.LstdFlags)
+	} else {
+		logger = tail.DiscardingLogger
+	}
 	t, err := tail.TailFile(filename, tail.Config{
 		Location: &tail.SeekInfo{Whence: io.SeekEnd},
 		ReOpen:   true,
 		Follow:   true,
 		Poll:     *tailPoll,
-		Logger:   stdlog.New(logger, "", stdlog.LstdFlags),
+		Logger:   logger,
 	})
 	if err != nil {
 		level.Error(e.logger).Log("msg", "Unable to open log", "err", err)
@@ -356,6 +364,7 @@ func main() {
 		*paniclog,
 		*eximExec,
 		*inputPath,
+		promlogConfig.Level.String(),
 		logger,
 	)
 	exporter.QueueSize()
