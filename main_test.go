@@ -140,6 +140,7 @@ func TestMetrics(t *testing.T) {
 		paniclog.Name(),
 		"exim4",
 		inputPath,
+		"debug",
 		logger,
 	)
 	exporter.Start()
