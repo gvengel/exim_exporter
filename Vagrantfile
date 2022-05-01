@@ -17,9 +17,10 @@ Vagrant.configure("2") do |config|
       export ASSUME_ALWAYS_YES=yes
       pkg-static bootstrap -f
       pkg upgrade -f
-      pkg install -y exim go git
+      pkg install -y rsync exim go git
       echo 'exim_enable="YES"' >> /etc/rc.conf
       /usr/local/etc/rc.d/exim start
     SHELL
+    cfg.vm.synced_folder ".", "/vagrant", type: "rsync", rsync__exclude: ".git/"
   end
 end
