@@ -174,6 +174,14 @@ func TestMetrics(t *testing.T) {
 	}
 	getProcesses = func() ([]*Process, error) {
 		return []*Process{
+			{[]string{"/usr/sbin/exim4", "-ps", "-bd", "-q15m", "-oP", "/var/spool/exim/exim-daemon.pid"}, true},
+		}, nil
+	}
+	t.Run("daemon", func(t *testing.T) {
+		collectAndCompareTestCase("daemon", registry, t)
+	})
+	getProcesses = func() ([]*Process, error) {
+		return []*Process{
 			{[]string{"/bin/bash", "-x"}, false},
 			{[]string{"/usr/sbin/exim4"}, false},
 			{[]string{"/usr/sbin/exim4", "-q30m"}, false},

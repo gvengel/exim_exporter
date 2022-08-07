@@ -187,7 +187,19 @@ func (e *Exporter) ProcessStates() map[string]float64 {
 				states[state] += 1
 			}
 		} else {
-			states["other"] += 1
+			isDaemon := false
+			if p.leader {
+				for _, arg := range p.cmdline {
+					if arg == "-bd" {
+						isDaemon = true
+					}
+				}
+			}
+			if isDaemon {
+				states["daemon"] += 1
+			} else {
+				states["other"] += 1
+			}
 		}
 	}
 	return states
