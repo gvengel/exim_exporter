@@ -1,3 +1,9 @@
+prometheus-exim-exporter (1.4.1) xenial; urgency=medium
+
+  * Fix bug in daemon process detection
+
+ -- Gabe Van Engel <gabe@schizoid.net>  Sun, 07 Aug 2022 22:37:44 -0700
+
 prometheus-exim-exporter (1.4.0) xenial; urgency=medium
 
   * Add exporter-toolkit for https and authentication support. @michaelpsomiadis 
