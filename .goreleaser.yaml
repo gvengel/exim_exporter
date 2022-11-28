@@ -1,0 +1,55 @@
+project_name: exim_exporter
+
+builds:
+  - ldflags: |
+      -X github.com/prometheus/common/version.Version={{.Version}}
+      -X github.com/prometheus/common/version.Revision={{.FullCommit}}
+      -X github.com/prometheus/common/version.Branch={{.Branch}}
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    tags:
+      - systemd
+    env:
+      - CGO_ENABLED=1
+    overrides:
+      - goos: linux
+        goarch: arm64
+        env:
+          - CC=aarch64-linux-gnu-gcc
+          - PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig
+
+# dockers:
+# - image_templates:
+#   - "gvengel/exim_exporter:{{ .Version }}"
+#   - "gvengel/exim_exporter:latest"
+#   dockerfile: Dockerfile
+#   use: buildx
+#   build_flag_templates:
+#   - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+#   - "--label=org.opencontainers.image.description={{ .ProjectName }}"
+#   - "--label=org.opencontainers.image.url=https://github.com/gvengel/exim_exporter"
+#   - "--label=org.opencontainers.image.source=https://github.com/gvengel/exim_exporter"
+#   - "--label=org.opencontainers.image.version={{ .Version }}"
+#   - "--label=org.opencontainers.image.created={{.Date}}"
+#   - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+#   - "--label=org.opencontainers.image.licenses=MIT"
+
+# nfpms:
+#   - maintainer: Gabe Van Engel <gabe@schizoid.net>
+#     description: |-
+#       Prometheus exporter for the exim4 mail server.
+#       The exim exporter exports metrics from the exim4 mail
+#       server for consumption by prometheus.
+#     homepage: https://github.com/gvengel/exim_exporter
+#     license: MIT
+#     package_name: prometheus-exim_exporter
+#     formats:
+#       - deb
+#     depends:
+#       - exim4-config
+
+release:
+  prerelease: auto
