@@ -22,7 +22,7 @@ import (
 	"github.com/prometheus/common/version"
 	"github.com/prometheus/exporter-toolkit/web"
 
-	"github.com/hpcloud/tail"
+	"github.com/nxadm/tail"
 	"github.com/shirou/gopsutil/process"
 )
 
