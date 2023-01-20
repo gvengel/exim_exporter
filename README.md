@@ -1,5 +1,5 @@
 # Exim Exporter for Prometheus 
-[![Build Status](https://travis-ci.com/gvengel/exim_exporter.svg?token=qhTuSsVmWS1s5LkEYqfN&branch=master)](https://travis-ci.com/gvengel/exim_exporter)
+[![Build Status](https://app.travis-ci.com/gvengel/exim_exporter.svg?branch=main)](https://app.travis-ci.com/gvengel/exim_exporter)
 [![Go Report Card](https://goreportcard.com/badge/github.com/gvengel/exim_exporter)](https://goreportcard.com/report/github.com/gvengel/exim_exporter) 
 
 This prometheus exporter monitors the [exim4](https://www.exim.org/) mail transport server. 
