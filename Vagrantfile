@@ -11,7 +11,7 @@ Vagrant.configure("2") do |config|
     SHELL
   end
 
-  config.vm.define "freebsd" do |cfg|
+  config.vm.define "freebsd", autostart: false do |cfg|
     cfg.vm.box = "bento/freebsd-11"
     cfg.vm.provision "shell", inline: <<-SHELL
       export ASSUME_ALWAYS_YES=yes

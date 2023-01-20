@@ -22,7 +22,7 @@ import (
 	"github.com/prometheus/common/version"
 	"github.com/prometheus/exporter-toolkit/web"
 
-	"github.com/hpcloud/tail"
+	"github.com/nxadm/tail"
 	"github.com/shirou/gopsutil/process"
 )
 
@@ -399,8 +399,14 @@ func main() {
 	http.Handle(*metricsPath, promhttp.Handler())
 
 	level.Info(logger).Log("msg", "Listening", "address", listenAddress)
-	server := &http.Server{Addr: *listenAddress}
-	if err := web.ListenAndServe(server, *webConfigFile, logger); err != nil {
+	server := &http.Server{}
+	webSystemdSocket := false
+	flags := web.FlagConfig{
+		WebListenAddresses: &[]string{*listenAddress},
+		WebSystemdSocket:   &webSystemdSocket,
+		WebConfigFile:      webConfigFile,
+	}
+	if err := web.ListenAndServe(server, &flags, logger); err != nil {
 		level.Error(logger).Log("err", err)
 		os.Exit(1)
 	}

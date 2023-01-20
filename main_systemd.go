@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"github.com/coreos/go-systemd/sdjournal"
 	"github.com/go-kit/kit/log/level"
-	"github.com/hpcloud/tail"
+	"github.com/nxadm/tail"
 	"log/syslog"
 	"os"
 	"time"

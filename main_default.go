@@ -5,7 +5,7 @@ package main
 
 import (
 	"github.com/go-kit/kit/log/level"
-	"github.com/hpcloud/tail"
+	"github.com/nxadm/tail"
 	"log/syslog"
 	"os"
 )
