@@ -19,6 +19,32 @@ changelog:
     exclude:
       - '^docs:'
       - '^test:'
+nfpms:
+  - package_name: prometheus-exim-exporter
+    file_name_template: "{{ .ConventionalFileName }}"
+    homepage: https://github.com/gvengel/exim_exporter
+    maintainer: Gabe Van Engel <gabe@schizoid.net>
+    description: |-
+      Prometheus exporter for the exim4 mail server.
+      The exim exporter exports metrics from the exim4 mail
+      server for consumption by prometheus.
+    license: MIT
+    formats:
+      - deb
+    dependencies:
+      - exim4-config
+    section: misc
+    priority: optional
+    contents:
+      - src: debian/prometheus-exim-exporter.default
+        dst: /etc/default/prometheus-exim-exporter
+        type: config
+      - src: debian/prometheus-exim-exporter.service
+        dst: /lib/systemd/system/prometheus-exim-exporter.service
+    scripts:
+      postinstall: "scripts/postinstall.sh"
+      preremove: "scripts/preremove.sh"
+      postremove: "scripts/postremove.sh"
 
 # The lines beneath this are called `modelines`. See `:help modeline`
 # Feel free to remove those if you don't want/use them.
