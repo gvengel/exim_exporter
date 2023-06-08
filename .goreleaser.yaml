@@ -19,6 +19,15 @@ changelog:
     exclude:
       - '^docs:'
       - '^test:'
+
+dockers:
+  - goos: linux
+    goarch: amd64
+    dockerfile: .goreleaser.dockerfile
+    image_templates:
+      - "gvengel/exim_exporter:latest"
+      - "gvengel/exim_exporter:{{ .Tag }}"
+
 nfpms:
   - package_name: prometheus-exim-exporter
     file_name_template: "{{ .ConventionalFileName }}"
