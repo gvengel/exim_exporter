@@ -56,10 +56,10 @@ nfpms:
         dst: /usr/bin/prometheus-exim-exporter
         file_info:
           mode: 0755
-      - src: debian/prometheus-exim-exporter.default
+      - src: scripts/prometheus-exim-exporter.default
         dst: /etc/default/prometheus-exim-exporter
         type: config
-      - src: debian/prometheus-exim-exporter.service
+      - src: scripts/prometheus-exim-exporter.service
         dst: /lib/systemd/system/prometheus-exim-exporter.service
     scripts:
       postinstall: "scripts/postinstall.sh"
