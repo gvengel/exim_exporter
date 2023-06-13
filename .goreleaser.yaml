@@ -12,6 +12,14 @@ builds:
       - '-X github.com/prometheus/common/version.Revision={{.ShortCommit}}'
       - '-X github.com/prometheus/common/version.Branch={{.Branch}}'
       - '-X github.com/prometheus/common/version.BuildDate={{.Date}}'
+    overrides:
+      - goos: linux
+        goarch: amd64
+        goamd64: v1
+        env:
+          - CGO_ENABLED=1
+        tags:
+          - systemd
 archives:
   - format: tar.gz
 checksum:
