@@ -2,12 +2,14 @@
 # vi: set ft=ruby :
 
 Vagrant.configure("2") do |config|
-  config.vm.define "ubuntu", primary: true do |cfg|
-    cfg.vm.box = "bento/ubuntu-18.04"
+  config.vm.define "linux", primary: true do |cfg|
+    cfg.vm.box = "bento/ubuntu-22.04"
     cfg.vm.provision "shell", inline: <<-SHELL
       apt-get update
-      apt-get install -y exim4 devscripts dh-make dh-systemd libsystemd-dev fakeroot
-      snap install go --classic
+      apt-get install -y ca-certificates make libsystemd-dev docker.io exim4
+      echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' > /etc/apt/sources.list.d/goreleaser.list
+      apt-get update
+      apt-get install -y goreleaser
     SHELL
   end
 
