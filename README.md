@@ -119,4 +119,4 @@ docker run
   gvengel/exim_exporter
 ```
 
-Also see the provided [docker-compose](docker-compose.yml) example.
+Also see the provided [docker-compose](examples/docker-compose.yml) example.
