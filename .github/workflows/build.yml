@@ -1,0 +1,41 @@
+name: build
+on:
+  - push
+  - pull_request
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v4
+        with:
+          go-version: stable
+      - run: go fmt .
+      - run: go vet .
+      - run: go test -v .
+  release:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - run: sudo apt-get install -y libsystemd-dev
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - run: git fetch --force --tags
+      - uses: actions/setup-go@v4
+        with:
+          go-version: stable
+      - uses: goreleaser/goreleaser-action@v4
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean ${{ startsWith(github.event.ref, 'refs/tags/v') && '' || '--snapshot' }}
+      - uses: actions/upload-artifact@v3
+        with:
+          name: exim_exporter.${{ github.ref_name }}.${{ github.run_number }}
+          path: |
+            dist/*.deb
+            dist/*.gz
+            dist/*.zip
