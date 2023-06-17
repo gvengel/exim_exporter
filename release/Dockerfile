@@ -1,4 +1,4 @@
-FROM --platform=amd64 ubuntu
+FROM --platform=amd64 ubuntu:focal
 WORKDIR /opt/exim_exporter
 RUN apt-get update; \
     DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates make libsystemd-dev docker.io

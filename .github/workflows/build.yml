@@ -4,7 +4,7 @@ on:
   - pull_request
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
         with:
@@ -16,7 +16,7 @@ jobs:
       - run: go vet .
       - run: go test -v .
   release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs: test
     steps:
       - run: sudo apt-get install -y libsystemd-dev
