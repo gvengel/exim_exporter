@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-20.04
     needs: test
     steps:
-      - run: sudo apt-get update && sudo apt-get install -y libsystemd-dev
+      - run: sudo release/install-deps.sh
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
