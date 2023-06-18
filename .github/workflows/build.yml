@@ -19,11 +19,11 @@ jobs:
     runs-on: ubuntu-20.04
     needs: test
     steps:
-      - run: sudo release/install-deps.sh
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - run: git fetch --force --tags
+      - run: sudo release/install-deps.sh
       - uses: actions/setup-go@v4
         with:
           go-version: stable
