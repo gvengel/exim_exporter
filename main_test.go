@@ -5,7 +5,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/prometheus/common/promlog"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -18,7 +17,7 @@ func isCaseSensitiveFilesystem(inputPath string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	fh.Close()
+	_ = fh.Close()
 	_, err = os.Stat(filepath.Join(inputPath, "TEST"))
 	if err == nil {
 		return false, nil
@@ -51,7 +50,7 @@ func writeMockMessage(path string, hash string, index int) error {
 		if err != nil {
 			return err
 		}
-		fh.Close()
+		_ = fh.Close()
 	}
 	return nil
 }
@@ -90,7 +89,7 @@ func collectAndCompareTestCase(name string, gatherer prometheus.Gatherer, t *tes
 }
 
 func appendLog(name string, file *os.File, t *testing.T) {
-	data, err := ioutil.ReadFile(filepath.Join("test", name))
+	data, err := os.ReadFile(filepath.Join("test", name))
 	if err != nil {
 		t.Fatal("Unable to read mainlog test data")
 	}
@@ -106,11 +105,11 @@ func TestMetrics(t *testing.T) {
 	logger := promlog.New(&promlog.Config{})
 
 	// Create a temp dir for our mock data
-	tempPath, err := ioutil.TempDir("", "exim_exporter_test")
+	tempPath, err := os.MkdirTemp("", "exim_exporter_test")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tempPath)
+	defer func() { _ = os.RemoveAll(tempPath) }()
 	inputPath := filepath.Join(tempPath, "input")
 	if err := os.MkdirAll(inputPath, 0755); err != nil {
 		t.Fatal(err)
@@ -121,17 +120,17 @@ func TestMetrics(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer mainlog.Close()
+	defer func() { _ = mainlog.Close() }()
 	rejectlog, err := os.OpenFile(filepath.Join(tempPath, "rejectlog"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer mainlog.Close()
+	defer func() { _ = rejectlog.Close() }()
 	paniclog, err := os.OpenFile(filepath.Join(tempPath, "paniclog"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer mainlog.Close()
+	defer func() { _ = paniclog.Close() }()
 
 	registry := prometheus.NewPedanticRegistry()
 	exporter := NewExporter(
