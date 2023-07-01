@@ -18,7 +18,7 @@ func isCaseSensitiveFilesystem(inputPath string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	fh.Close()
+	_ = fh.Close()
 	_, err = os.Stat(filepath.Join(inputPath, "TEST"))
 	if err == nil {
 		return false, nil
@@ -51,7 +51,7 @@ func writeMockMessage(path string, hash string, index int) error {
 		if err != nil {
 			return err
 		}
-		fh.Close()
+		_ = fh.Close()
 	}
 	return nil
 }
@@ -110,7 +110,7 @@ func TestMetrics(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tempPath)
+	defer func() { _ = os.RemoveAll(tempPath) }()
 	inputPath := filepath.Join(tempPath, "input")
 	if err := os.MkdirAll(inputPath, 0755); err != nil {
 		t.Fatal(err)
@@ -121,17 +121,17 @@ func TestMetrics(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer mainlog.Close()
+	defer func() { _ = mainlog.Close() }()
 	rejectlog, err := os.OpenFile(filepath.Join(tempPath, "rejectlog"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer mainlog.Close()
+	defer func() { _ = rejectlog.Close() }()
 	paniclog, err := os.OpenFile(filepath.Join(tempPath, "paniclog"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer mainlog.Close()
+	defer func() { _ = paniclog.Close() }()
 
 	registry := prometheus.NewPedanticRegistry()
 	exporter := NewExporter(
