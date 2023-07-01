@@ -1,0 +1,90 @@
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+builds:
+  - goos:
+      - linux
+      - freebsd
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - '-X github.com/prometheus/common/version.Version={{.Version}}'
+      - '-X github.com/prometheus/common/version.Revision={{.ShortCommit}}'
+      - '-X github.com/prometheus/common/version.Branch={{.Branch}}'
+      - '-X github.com/prometheus/common/version.BuildDate={{.Date}}'
+    overrides:
+      - goos: linux
+        goarch: amd64
+        goamd64: v1
+        env:
+          - CGO_ENABLED=1
+        tags:
+          - systemd
+      - goos: linux
+        goarch: arm64
+        env:
+          - CGO_ENABLED=1
+          - CC=aarch64-linux-gnu-gcc
+          - PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig
+        tags:
+          - systemd
+archives:
+  - format: tar.gz
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ incpatch .Version }}"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+
+dockers:
+  - goos: linux
+    goarch: amd64
+    dockerfile: .goreleaser.dockerfile
+    image_templates:
+      - "gvengel/exim_exporter:latest"
+      - "gvengel/exim_exporter:{{ .Tag }}"
+
+nfpms:
+  - package_name: prometheus-exim-exporter
+    file_name_template: "{{ .ConventionalFileName }}"
+    homepage: https://github.com/gvengel/exim_exporter
+    maintainer: Gabe Van Engel <gabe@schizoid.net>
+    description: |-
+      Prometheus exporter for the exim4 mail server.
+      The exim exporter exports metrics from the exim4 mail
+      server for consumption by prometheus.
+    license: MIT
+    formats:
+      - deb
+    dependencies:
+      - exim4-config
+    section: misc
+    priority: optional
+    # Set the meta flag, so we can rename the binary in the debian package
+    meta: true
+    contents:
+      - src: '{{ .ArtifactPath }}'
+        dst: /usr/bin/prometheus-exim-exporter
+        file_info:
+          mode: 0755
+      - src: scripts/prometheus-exim-exporter.default
+        dst: /etc/default/prometheus-exim-exporter
+        type: config
+      - src: scripts/prometheus-exim-exporter.service
+        dst: /lib/systemd/system/prometheus-exim-exporter.service
+    scripts:
+      postinstall: "scripts/postinstall.sh"
+      preremove: "scripts/preremove.sh"
+      postremove: "scripts/postremove.sh"
+release:
+  draft: true
+
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj

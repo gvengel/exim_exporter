@@ -1,5 +1,5 @@
 # Exim Exporter for Prometheus 
-[![Build Status](https://travis-ci.com/gvengel/exim_exporter.svg?token=qhTuSsVmWS1s5LkEYqfN&branch=master)](https://travis-ci.com/gvengel/exim_exporter)
+[![build](https://github.com/gvengel/exim_exporter/actions/workflows/build.yml/badge.svg)](https://github.com/gvengel/exim_exporter/actions/workflows/build.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/gvengel/exim_exporter)](https://goreportcard.com/report/github.com/gvengel/exim_exporter) 
 
 This prometheus exporter monitors the [exim4](https://www.exim.org/) mail transport server. 
@@ -119,4 +119,4 @@ docker run
   gvengel/exim_exporter
 ```
 
-Also see the provided [docker-compose](docker-compose.yml) example.
+Also see the provided [docker-compose](examples/docker-compose.yml) example.

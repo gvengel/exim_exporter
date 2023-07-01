@@ -1,0 +1,41 @@
+name: build
+on:
+  - push
+  - pull_request
+jobs:
+  test:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v4
+        with:
+          go-version: stable
+      - run: go fmt .
+      - run: go vet .
+      - run: go test -v .
+  release:
+    runs-on: ubuntu-20.04
+    needs: test
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - run: git fetch --force --tags
+      - run: sudo release/install-deps.sh
+      - uses: actions/setup-go@v4
+        with:
+          go-version: stable
+      - uses: goreleaser/goreleaser-action@v4
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean ${{ startsWith(github.event.ref, 'refs/tags/v') && '' || '--snapshot' }}
+      - uses: actions/upload-artifact@v3
+        with:
+          name: exim_exporter.${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            dist/*.deb
+            dist/*.gz
+            dist/*.zip
