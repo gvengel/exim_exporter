@@ -34,7 +34,7 @@ jobs:
           args: release --clean ${{ startsWith(github.event.ref, 'refs/tags/v') && '' || '--snapshot' }}
       - uses: actions/upload-artifact@v3
         with:
-          name: exim_exporter.${{ github.ref_name }}.${{ github.run_number }}
+          name: exim_exporter.${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             dist/*.deb
             dist/*.gz
