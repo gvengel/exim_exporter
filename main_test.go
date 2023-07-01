@@ -5,7 +5,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/prometheus/common/promlog"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -90,7 +89,7 @@ func collectAndCompareTestCase(name string, gatherer prometheus.Gatherer, t *tes
 }
 
 func appendLog(name string, file *os.File, t *testing.T) {
-	data, err := ioutil.ReadFile(filepath.Join("test", name))
+	data, err := os.ReadFile(filepath.Join("test", name))
 	if err != nil {
 		t.Fatal("Unable to read mainlog test data")
 	}
@@ -106,7 +105,7 @@ func TestMetrics(t *testing.T) {
 	logger := promlog.New(&promlog.Config{})
 
 	// Create a temp dir for our mock data
-	tempPath, err := ioutil.TempDir("", "exim_exporter_test")
+	tempPath, err := os.MkdirTemp("", "exim_exporter_test")
 	if err != nil {
 		t.Fatal(err)
 	}
