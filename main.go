@@ -11,9 +11,9 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/alecthomas/kingpin/v2"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
-	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -23,7 +23,7 @@ import (
 	"github.com/prometheus/exporter-toolkit/web"
 
 	"github.com/nxadm/tail"
-	"github.com/shirou/gopsutil/process"
+	"github.com/shirou/gopsutil/v3/process"
 )
 
 var (
