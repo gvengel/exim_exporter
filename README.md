@@ -79,8 +79,8 @@ These stats are calculated by tailing the rejectlog and paniclog, returning coun
 
 This metric returns the number of running exim process, labeled by process state.
 The state is detected by parsing the process's command line and looking for known arguments.
-While this method doesn't provide the same detail as `exiwhat`, that tool is 
-[contraindicated for using in monitoring](https://www.exim.org/exim-html-current/doc/html/spec_html/ch-exim_utilities.html#SECTfinoutwha).
+While this method doesn't provide the same detail as `exiwhat`, that tool is
+[contraindicated for use in monitoring](https://www.exim.org/exim-html-current/doc/html/spec_html/ch-exim_utilities.html#SECTfinoutwha).
 
 | Prom Label | Exim State |
 |------------|------------|
