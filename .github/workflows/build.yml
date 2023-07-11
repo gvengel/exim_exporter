@@ -35,7 +35,7 @@ jobs:
         with:
           distribution: goreleaser
           version: latest
-          args: release --clean ${{ startsWith(github.event.ref, 'refs/tags/v') && '' || '--snapshot' }}
+          args: release --clean ${{ startsWith(github.event.ref, 'refs/tags/v') == false && '--snapshot' || '' }}
       - uses: actions/upload-artifact@v3
         with:
           name: exim_exporter.${{ github.run_id }}-${{ github.run_attempt }}
