@@ -3,17 +3,27 @@ before:
     - go mod tidy
     - go generate ./...
 builds:
-  - goos:
+  - id: standard
+    goos:
       - linux
       - freebsd
     goarch:
       - amd64
       - arm64
-    ldflags:
+    ldflags: &ldflags
       - '-X github.com/prometheus/common/version.Version={{.Version}}'
       - '-X github.com/prometheus/common/version.Revision={{.ShortCommit}}'
       - '-X github.com/prometheus/common/version.Branch={{.Branch}}'
       - '-X github.com/prometheus/common/version.BuildDate={{.Date}}'
+    env:
+      - CGO_ENABLED=0
+  - id: systemd
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags: *ldflags
     overrides:
       - goos: linux
         goarch: amd64
@@ -31,7 +41,15 @@ builds:
         tags:
           - systemd
 archives:
-  - format: tar.gz
+  - id: standard
+    format: tar.gz
+    builds:
+      - standard
+  - id: systemd
+    format: tar.gz
+    builds:
+      - systemd
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}_with_systemd"
 checksum:
   name_template: 'checksums.txt'
 snapshot:
@@ -42,7 +60,6 @@ changelog:
     exclude:
       - '^docs:'
       - '^test:'
-
 dockers:
   - goos: linux
     goarch: amd64
@@ -50,9 +67,12 @@ dockers:
     image_templates:
       - "gvengel/exim_exporter:latest"
       - "gvengel/exim_exporter:{{ .Tag }}"
-
+    ids:
+      - standard
 nfpms:
-  - package_name: prometheus-exim-exporter
+  - builds:
+      - systemd
+    package_name: prometheus-exim-exporter
     file_name_template: "{{ .ConventionalFileName }}"
     homepage: https://github.com/gvengel/exim_exporter
     maintainer: Gabe Van Engel <gabe@schizoid.net>
