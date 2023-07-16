@@ -49,7 +49,7 @@ archives:
     format: tar.gz
     builds:
       - systemd
-    name_template: "{{ .ProjectName }}_with_systemd_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}_with_systemd"
 checksum:
   name_template: 'checksums.txt'
 snapshot:
