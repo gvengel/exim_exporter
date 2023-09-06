@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/alecthomas/kingpin/v2 v2.3.2
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
-	github.com/go-kit/kit v0.12.0
+	github.com/go-kit/kit v0.13.0
 	github.com/nxadm/tail v1.4.8
 	github.com/prometheus/client_golang v1.16.0
 	github.com/prometheus/common v0.44.0
