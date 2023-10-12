@@ -279,21 +279,30 @@ func (e *Exporter) TailMainLog(lines chan *tail.Line) {
 			continue
 		}
 		_ = level.Debug(e.logger).Log("file", "mainlong", "msg", line.Text)
-		parts := strings.SplitN(line.Text, " ", 6)
+		parts := strings.SplitN(line.Text, " ", 7)
 		size := len(parts)
 		if size < 3 {
 			continue
 		}
-		// Handle logs when PID logging is enabled
-		var index int
-		if parts[2][0] == '[' {
-			index = 4
-		} else {
-			index = 3
+
+		index := 2
+		// Handle logs when timestamps are enabled
+		if parts[index][0] == '+' || parts[index][0] == '-' {
+			index++
 		}
+
+		// Handle logs when PID logging is enabled
+		if parts[index][0] == '[' {
+			index++
+		}
+
+		// Increment once more to get past the mail ID
+		index++
+
 		if size < index+1 {
 			continue
 		}
+
 		switch parts[index] {
 		case "<=":
 			eximMessages.With(prometheus.Labels{"flag": "arrived"}).Inc()
