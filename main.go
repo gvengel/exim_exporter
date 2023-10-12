@@ -53,7 +53,7 @@ var (
 	eximQueue = prometheus.NewDesc(
 		prometheus.BuildFQName("exim", "", "queue"),
 		"Number of messages currently in queue",
-		nil, nil,
+		[]string{"state"}, nil,
 	)
 	eximProcesses = prometheus.NewDesc(
 		prometheus.BuildFQName("exim", "", "processes"),
@@ -135,6 +135,11 @@ type Exporter struct {
 	logger    log.Logger
 }
 
+type QueueSize struct {
+	frozen float64
+	active float64
+}
+
 func NewExporter(mainlog, rejectlog, paniclog, eximExec, inputPath, logLevel string, logger log.Logger) *Exporter {
 	return &Exporter{
 		mainlog,
@@ -164,9 +169,8 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(eximProcesses, prometheus.GaugeValue, value, label)
 	}
 	queue := e.QueueSize()
-	if queue >= 0 {
-		ch <- prometheus.MustNewConstMetric(eximQueue, prometheus.GaugeValue, queue)
-	}
+	ch <- prometheus.MustNewConstMetric(eximQueue, prometheus.GaugeValue, queue.active, "active")
+	ch <- prometheus.MustNewConstMetric(eximQueue, prometheus.GaugeValue, queue.frozen, "frozen")
 }
 
 func (e *Exporter) ProcessStates() map[string]float64 {
@@ -208,31 +212,49 @@ func (e *Exporter) ProcessStates() map[string]float64 {
 	return states
 }
 
-func (e *Exporter) CountMessages(dirname string) float64 {
+func (e *Exporter) CountMessages(dirname string) QueueSize {
+	queueSize := QueueSize{}
+
 	dir, err := os.Open(dirname)
 	if err != nil {
-		return 0
+		return queueSize
 	}
 	messages, err := dir.Readdirnames(-1)
 	_ = dir.Close()
 	if err != nil {
-		return 0
+		return queueSize
 	}
-	var count float64
-	for _, name := range messages {
-		if (len(name) == 18 || len(name) == 25) && strings.HasSuffix(name, "-H") {
-			count += 1
+	for _, fileName := range messages {
+		// message ID in exim >= 4.97 are 25 chars
+		// message ID in exim < 4.97 are only 18 chars
+		// Each message has a header and data file, so only count one of them
+		if !(len(fileName) == 25 || len(fileName) == 18) || !strings.HasSuffix(fileName, "-H") {
+			continue
+		}
+
+		fileContentBytes, err := os.ReadFile(path.Join(dirname, fileName))
+		if err != nil {
+			continue
+		}
+
+		fileContentString := string(fileContentBytes)
+		if strings.Contains(fileContentString, "-frozen ") {
+			queueSize.frozen++
+		} else {
+			queueSize.active++
 		}
 	}
-	return count
+	return queueSize
 }
 
-func (e *Exporter) QueueSize() float64 {
+func (e *Exporter) QueueSize() QueueSize {
 	_ = level.Debug(e.logger).Log("msg", "Reading queue size")
 	count := e.CountMessages(e.inputPath)
 	for h := 0; h < len(BASE62); h++ {
 		hashPath := filepath.Join(e.inputPath, string(BASE62[h]))
-		count += e.CountMessages(hashPath)
+		addCount := e.CountMessages(hashPath)
+		count.frozen += addCount.frozen
+		count.active += addCount.active
 	}
 	return count
 }
