@@ -1,16 +1,22 @@
 #!/bin/bash
 set -ex
 dpkg --add-architecture arm64
-sed 's/^deb http/deb \[arch=amd64\] http/' -i /etc/apt/sources.list
+find /etc/apt/sources.list.d -name '*.list' -delete
 . /etc/lsb-release
-cat <<EOT >/etc/apt/sources.list.d/arm64.list
-deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ ${DISTRIB_CODENAME} main restricted universe multiverse
-deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ ${DISTRIB_CODENAME}-updates main restricted universe multiverse
-deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ ${DISTRIB_CODENAME}-backports main restricted universe multiverse
-deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ ${DISTRIB_CODENAME}-security main restricted universe multiverse
+cat <<EOT >/etc/apt/sources.list
+# amd64
+deb [arch=amd64] http://us.archive.ubuntu.com/ubuntu ${DISTRIB_CODENAME} main restricted universe multiverse
+deb [arch=amd64] http://us.archive.ubuntu.com/ubuntu ${DISTRIB_CODENAME}-updates main restricted universe multiverse
+deb [arch=amd64] http://us.archive.ubuntu.com/ubuntu ${DISTRIB_CODENAME}-backports main restricted universe multiverse
+deb [arch=amd64] http://us.archive.ubuntu.com/ubuntu ${DISTRIB_CODENAME}-security main restricted universe multiverse
+# arm64
+deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports ${DISTRIB_CODENAME} main restricted universe multiverse
+deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports ${DISTRIB_CODENAME}-updates main restricted universe multiverse
+deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports ${DISTRIB_CODENAME}-backports main restricted universe multiverse
+deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports ${DISTRIB_CODENAME}-security main restricted universe multiverse
 EOT
 apt-get update
-apt-get install -y --no-install-recommends \
+apt-get install -fy \
   build-essential \
   libsystemd-dev \
   gcc-aarch64-linux-gnu \
