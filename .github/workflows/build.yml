@@ -10,7 +10,7 @@ jobs:
   test:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - uses: actions/setup-go@v4
@@ -23,12 +23,12 @@ jobs:
     runs-on: ubuntu-20.04
     needs: test
     steps:
-      - uses: docker/login-action@v2
+      - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
         if: startsWith(github.event.ref, 'refs/tags/v')
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - run: git fetch --force --tags
@@ -36,7 +36,7 @@ jobs:
       - uses: actions/setup-go@v4
         with:
           go-version: stable
-      - uses: goreleaser/goreleaser-action@v4
+      - uses: goreleaser/goreleaser-action@v5
         with:
           distribution: goreleaser
           version: latest
