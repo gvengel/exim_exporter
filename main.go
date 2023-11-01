@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"io"
 	stdlog "log"
 	"log/syslog"
@@ -224,6 +225,8 @@ func (e *Exporter) CountMessages(dirname string) QueueSize {
 	if err != nil {
 		return queueSize
 	}
+	var isFrozen bool
+	var lineNumber int
 	for _, fileName := range messages {
 		// message ID in exim >= 4.97 are 25 chars
 		// message ID in exim < 4.97 are only 18 chars
@@ -232,13 +235,28 @@ func (e *Exporter) CountMessages(dirname string) QueueSize {
 			continue
 		}
 
-		fileContentBytes, err := os.ReadFile(path.Join(dirname, fileName))
+		headerFile, err := os.Open(path.Join(dirname, fileName))
 		if err != nil {
 			continue
 		}
-
-		fileContentString := string(fileContentBytes)
-		if strings.Contains(fileContentString, "-frozen ") {
+		fileScanner := bufio.NewScanner(headerFile)
+		fileScanner.Split(bufio.ScanLines)
+		isFrozen = false
+		lineNumber = 0
+		for fileScanner.Scan() {
+			lineNumber++
+			if lineNumber <= 4 {
+				continue
+			}
+			if !strings.HasPrefix(fileScanner.Text(), "-") {
+				break
+			}
+			if strings.HasPrefix(fileScanner.Text(), "-frozen ") {
+				isFrozen = true
+				break
+			}
+		}
+		if isFrozen {
 			queueSize.frozen++
 		} else {
 			queueSize.active++
