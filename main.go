@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -105,6 +106,11 @@ type Process struct {
 	leader  bool
 }
 
+type QueueState struct {
+	frozen float64
+	active float64
+}
+
 // map globals we can override in tests
 var (
 	getProcesses = func() ([]*Process, error) {
@@ -169,26 +175,26 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(eximProcesses, prometheus.GaugeValue, value, label)
 	}
 
-	queueChannel := make(chan string, 10)
-	queue := e.QueueSize(queueChannel)
+	msgPathChannel := make(chan string, 100)
+	queue := e.QueueSize(msgPathChannel)
 	if queue >= 0 {
 		ch <- prometheus.MustNewConstMetric(eximQueue, prometheus.GaugeValue, queue)
 	}
 
-	channel := make(chan string, 1)
+	queueStatsChannel := make(chan QueueState, 1)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
 	// Start the doSomething function
-	go e.QueueStates(ctx, channel)
+	go e.QueueStates(ctx, msgPathChannel, queueStatsChannel)
 
 	select {
 	case <-ctx.Done():
+		// TODO: increment error counter
 		fmt.Printf("Context cancelled: %v\n", ctx.Err())
-	case queue_states := <-channel:
-		for label, value := range queue_states {
-			ch <- prometheus.MustNewConstMetric(eximQueueStates, prometheus.GaugeValue, value, label)
-		}
+	case queueState := <-queueStatsChannel:
+		ch <- prometheus.MustNewConstMetric(eximQueueStates, prometheus.GaugeValue, queueState.active, "active")
+		ch <- prometheus.MustNewConstMetric(eximQueueStates, prometheus.GaugeValue, queueState.frozen, "frozen")
 	}
 
 }
@@ -263,12 +269,40 @@ func (e *Exporter) QueueSize(ch chan string) float64 {
 	return count
 }
 
-func (e *Exporter) QueueStates(ctx context.Context, ch chan string) map[string]float64 {
+func (e *Exporter) QueueStates(ctx context.Context, input chan string, output chan QueueState) {
 	_ = level.Debug(e.logger).Log("msg", "Reading queue states")
-	states := make(map[string]float64)
-	for msgPath := range ch {
+	queueState := QueueState{}
+	var isFrozen bool
+	var lineNumber int
+	for msgPath := range input {
+		headerFile, err := os.Open(msgPath)
+		if err != nil {
+			continue
+		}
+		fileScanner := bufio.NewScanner(headerFile)
+		fileScanner.Split(bufio.ScanLines)
+		isFrozen = false
+		lineNumber = 0
+		for fileScanner.Scan() {
+			lineNumber++
+			if lineNumber <= 4 {
+				continue
+			}
+			if !strings.HasPrefix(fileScanner.Text(), "-") {
+				break
+			}
+			if strings.HasPrefix(fileScanner.Text(), "-frozen ") {
+				isFrozen = true
+				break
+			}
+		}
+		if isFrozen {
+			queueState.frozen++
+		} else {
+			queueState.active++
+		}
 	}
-	return states
+	output <- queueState
 }
 
 func (e *Exporter) Start() {
@@ -425,7 +459,7 @@ func main() {
 		promlogConfig.Level.String(),
 		logger,
 	)
-	exporter.QueueSize()
+	//exporter.QueueSize()
 	exporter.Start()
 	prometheus.MustRegister(exporter)
 
