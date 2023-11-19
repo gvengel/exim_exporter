@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"io"
 	stdlog "log"
 	"log/syslog"
@@ -10,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/alecthomas/kingpin/v2"
 	"github.com/go-kit/kit/log"
@@ -53,6 +56,11 @@ var (
 		prometheus.BuildFQName("exim", "", "queue"),
 		"Number of messages currently in queue",
 		nil, nil,
+	)
+	eximQueueStates = prometheus.NewDesc(
+		prometheus.BuildFQName("exim", "", "queue"),
+		"Number of messages currently in queue labeled by state",
+		[]string{"state"}, nil,
 	)
 	eximProcesses = prometheus.NewDesc(
 		prometheus.BuildFQName("exim", "", "processes"),
@@ -160,10 +168,29 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	for label, value := range states {
 		ch <- prometheus.MustNewConstMetric(eximProcesses, prometheus.GaugeValue, value, label)
 	}
-	queue := e.QueueSize()
+
+	queueChannel := make(chan string, 10)
+	queue := e.QueueSize(queueChannel)
 	if queue >= 0 {
 		ch <- prometheus.MustNewConstMetric(eximQueue, prometheus.GaugeValue, queue)
 	}
+
+	channel := make(chan string, 1)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	// Start the doSomething function
+	go e.QueueStates(ctx, channel)
+
+	select {
+	case <-ctx.Done():
+		fmt.Printf("Context cancelled: %v\n", ctx.Err())
+	case queue_states := <-channel:
+		for label, value := range queue_states {
+			ch <- prometheus.MustNewConstMetric(eximQueueStates, prometheus.GaugeValue, value, label)
+		}
+	}
+
 }
 
 func (e *Exporter) ProcessStates() map[string]float64 {
@@ -205,7 +232,7 @@ func (e *Exporter) ProcessStates() map[string]float64 {
 	return states
 }
 
-func (e *Exporter) CountMessages(dirname string) float64 {
+func (e *Exporter) CountMessages(dirname string, ch chan string) float64 {
 	dir, err := os.Open(dirname)
 	if err != nil {
 		return 0
@@ -219,19 +246,29 @@ func (e *Exporter) CountMessages(dirname string) float64 {
 	for _, name := range messages {
 		if len(name) == 18 && strings.HasSuffix(name, "-H") {
 			count += 1
+			ch <- filepath.Join(dirname, name)
 		}
 	}
 	return count
 }
 
-func (e *Exporter) QueueSize() float64 {
+func (e *Exporter) QueueSize(ch chan string) float64 {
 	_ = level.Debug(e.logger).Log("msg", "Reading queue size")
-	count := e.CountMessages(e.inputPath)
+	defer close(ch)
+	count := e.CountMessages(e.inputPath, ch)
 	for h := 0; h < len(BASE62); h++ {
 		hashPath := filepath.Join(e.inputPath, string(BASE62[h]))
-		count += e.CountMessages(hashPath)
+		count += e.CountMessages(hashPath, ch)
 	}
 	return count
+}
+
+func (e *Exporter) QueueStates(ctx context.Context, ch chan string) map[string]float64 {
+	_ = level.Debug(e.logger).Log("msg", "Reading queue states")
+	states := make(map[string]float64)
+	for msgPath := range ch {
+	}
+	return states
 }
 
 func (e *Exporter) Start() {
