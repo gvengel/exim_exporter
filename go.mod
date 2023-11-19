@@ -3,7 +3,7 @@ module exim_exporter
 go 1.17
 
 require (
-	github.com/alecthomas/kingpin/v2 v2.3.2
+	github.com/alecthomas/kingpin/v2 v2.4.0
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
 	github.com/go-kit/kit v0.13.0
 	github.com/nxadm/tail v1.4.11
