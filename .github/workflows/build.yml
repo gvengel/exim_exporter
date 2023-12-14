@@ -43,7 +43,7 @@ jobs:
           args: release --clean ${{ startsWith(github.event.ref, 'refs/tags/v') == false && '--snapshot' || '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: exim_exporter.${{ github.run_id }}-${{ github.run_attempt }}
           path: |
