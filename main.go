@@ -281,7 +281,7 @@ func (e *Exporter) TailMainLog(lines chan *tail.Line) {
 			readErrors.Inc()
 			continue
 		}
-		_ = level.Debug(e.logger).Log("file", "mainlong", "msg", line.Text)
+		_ = level.Debug(e.logger).Log("file", "mainlog", "msg", line.Text)
 		parts := strings.SplitN(line.Text, " ", 7)
 		size := len(parts)
 		if size < 3 {
