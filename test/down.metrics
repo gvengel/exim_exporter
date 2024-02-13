@@ -3,8 +3,10 @@
 exim_panic_total 0
 # HELP exim_queue Number of messages currently in queue
 # TYPE exim_queue gauge
-exim_queue{state="active"} 0
-exim_queue{state="frozen"} 0
+exim_queue 0
+# HELP exim_queue_frozen Number of messages currently frozen in queue
+# TYPE exim_queue_frozen gauge
+exim_queue_frozen 0
 # HELP exim_reject_total Total number of logged reject messages
 # TYPE exim_reject_total counter
 exim_reject_total 0

@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/alecthomas/kingpin/v2"
 	"github.com/go-kit/kit/log"
@@ -54,7 +55,18 @@ var (
 	eximQueue = prometheus.NewDesc(
 		prometheus.BuildFQName("exim", "", "queue"),
 		"Number of messages currently in queue",
-		[]string{"state"}, nil,
+		nil, nil,
+	)
+	eximQueueFrozen = prometheus.NewDesc(
+		prometheus.BuildFQName("exim", "", "queue_frozen"),
+		"Number of messages currently frozen in queue",
+		nil, nil,
+	)
+	eximQueueStateTimeoutErrors = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: prometheus.BuildFQName("exim", "", "queue_state_timeout_errors"),
+			Help: "Total number of errors encountered while reading the logs",
+		},
 	)
 	eximProcesses = prometheus.NewDesc(
 		prometheus.BuildFQName("exim", "", "processes"),
@@ -137,8 +149,9 @@ type Exporter struct {
 }
 
 type QueueSize struct {
-	frozen float64
-	active float64
+	total    float64
+	frozen   float64
+	timedOut bool
 }
 
 func NewExporter(mainlog, rejectlog, paniclog, eximExec, inputPath, logLevel string, logger log.Logger) *Exporter {
@@ -156,6 +169,7 @@ func NewExporter(mainlog, rejectlog, paniclog, eximExec, inputPath, logLevel str
 func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- eximUp
 	ch <- eximQueue
+	ch <- eximQueueFrozen
 	ch <- eximProcesses
 }
 
@@ -170,8 +184,8 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(eximProcesses, prometheus.GaugeValue, value, label)
 	}
 	queue := e.QueueSize()
-	ch <- prometheus.MustNewConstMetric(eximQueue, prometheus.GaugeValue, queue.active, "active")
-	ch <- prometheus.MustNewConstMetric(eximQueue, prometheus.GaugeValue, queue.frozen, "frozen")
+	ch <- prometheus.MustNewConstMetric(eximQueue, prometheus.GaugeValue, queue.total)
+	ch <- prometheus.MustNewConstMetric(eximQueueFrozen, prometheus.GaugeValue, queue.frozen)
 }
 
 func (e *Exporter) ProcessStates() map[string]float64 {
@@ -213,17 +227,15 @@ func (e *Exporter) ProcessStates() map[string]float64 {
 	return states
 }
 
-func (e *Exporter) CountMessages(dirname string) QueueSize {
-	queueSize := QueueSize{}
-
+func (e *Exporter) CountMessages(dirname string, queueSize *QueueSize, deadline time.Time) {
 	dir, err := os.Open(dirname)
 	if err != nil {
-		return queueSize
+		return
 	}
 	messages, err := dir.Readdirnames(-1)
 	_ = dir.Close()
 	if err != nil {
-		return queueSize
+		return
 	}
 	var isFrozen bool
 	var lineNumber int
@@ -234,23 +246,39 @@ func (e *Exporter) CountMessages(dirname string) QueueSize {
 		if !(len(fileName) == 25 || len(fileName) == 18) || !strings.HasSuffix(fileName, "-H") {
 			continue
 		}
+		queueSize.total += 1
+		if queueSize.timedOut {
+			continue
+		} else if time.Now().After(deadline) {
+			queueSize.timedOut = true
+			queueSize.frozen = 0
+			eximQueueStateTimeoutErrors.Inc()
+			continue
+		}
 
 		headerFile, err := os.Open(path.Join(dirname, fileName))
 		if err != nil {
 			continue
 		}
+		// https://www.exim.org/exim-html-current/doc/html/spec_html/ch-format_of_spool_files.html
 		fileScanner := bufio.NewScanner(headerFile)
 		fileScanner.Split(bufio.ScanLines)
 		isFrozen = false
 		lineNumber = 0
 		for fileScanner.Scan() {
 			lineNumber++
+			// First four lines of the file contain fixed metadata
 			if lineNumber <= 4 {
 				continue
 			}
+			// Then follow a number of lines starting with a hyphen.
+			// These contain variables, which can appear in any order.
+			// If the line doesn't start with a hyphen, then we've reached the
+			// end of the variable section.
 			if !strings.HasPrefix(fileScanner.Text(), "-") {
 				break
 			}
+			// If we found the frozen flag, stop scanning, since that's all we care about for now.
 			if strings.HasPrefix(fileScanner.Text(), "-frozen ") {
 				isFrozen = true
 				break
@@ -258,23 +286,20 @@ func (e *Exporter) CountMessages(dirname string) QueueSize {
 		}
 		if isFrozen {
 			queueSize.frozen++
-		} else {
-			queueSize.active++
 		}
 	}
-	return queueSize
 }
 
 func (e *Exporter) QueueSize() QueueSize {
 	_ = level.Debug(e.logger).Log("msg", "Reading queue size")
-	count := e.CountMessages(e.inputPath)
+	deadline := time.Now().Add(time.Second * 10)
+	queueSize := QueueSize{}
+	e.CountMessages(e.inputPath, &queueSize, deadline)
 	for h := 0; h < len(BASE62); h++ {
 		hashPath := filepath.Join(e.inputPath, string(BASE62[h]))
-		addCount := e.CountMessages(hashPath)
-		count.frozen += addCount.frozen
-		count.active += addCount.active
+		e.CountMessages(hashPath, &queueSize, deadline)
 	}
-	return count
+	return queueSize
 }
 
 func (e *Exporter) Start() {
