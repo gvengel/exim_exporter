@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -63,12 +64,6 @@ var (
 		"Number of messages currently frozen in queue",
 		nil, nil,
 	)
-	eximQueueStateTimeoutErrors = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Name: prometheus.BuildFQName("exim", "", "queue_state_timeout_errors"),
-			Help: "Total number of errors encountered while reading the logs",
-		},
-	)
 	eximProcesses = prometheus.NewDesc(
 		prometheus.BuildFQName("exim", "", "processes"),
 		"Number of running exim process broken down by state (delivering, handling, etc)",
@@ -80,6 +75,13 @@ var (
 			Help: "Total number of logged messages broken down by flag (delivered, deferred, etc)",
 		},
 		[]string{"flag"},
+	)
+	eximMessageErrors = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: prometheus.BuildFQName("exim", "", "message_errors_total"),
+			Help: "Number of logged messages broken down by error code (451, 550, etc)",
+		},
+		[]string{"status", "enhanced"},
 	)
 	eximReject = prometheus.NewCounter(
 		prometheus.CounterOpts{
@@ -95,7 +97,13 @@ var (
 	)
 	readErrors = prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Name: prometheus.BuildFQName("exim", "log_read", "errors"),
+			Name: prometheus.BuildFQName("exim", "", "log_read_errors"),
+			Help: "Total number of errors encountered while reading the logs",
+		},
+	)
+	timeoutErrors = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: prometheus.BuildFQName("exim", "", "queue_state_timeout_errors"),
 			Help: "Total number of errors encountered while reading the logs",
 		},
 	)
@@ -138,6 +146,10 @@ var (
 		return result, nil
 	}
 )
+
+// Basic status code (https://datatracker.ietf.org/doc/html/rfc821)
+// followed by optional Enhanced status code (https://datatracker.ietf.org/doc/html/rfc3463)
+var errorCodeRegexp = regexp.MustCompile(": ([2-5][0-9]{2})[ -]([2-5]\\.[0-9]{1,3}\\.[0-9]{1,3})?")
 
 type Exporter struct {
 	mainlog   string
@@ -256,7 +268,7 @@ func (e *Exporter) CountMessages(dirname string, queueSize *QueueSize, deadline 
 			} else if time.Now().After(deadline) {
 				queueSize.timedOut = true
 				queueSize.frozen = 0
-				eximQueueStateTimeoutErrors.Inc()
+				timeoutErrors.Inc()
 				continue
 			}
 		}
@@ -381,6 +393,7 @@ func (e *Exporter) TailMainLog(lines chan *tail.Line) {
 			continue
 		}
 
+		errorFlag := false
 		switch parts[index] {
 		case "<=":
 			eximMessages.With(prometheus.Labels{"flag": "arrived"}).Inc()
@@ -396,14 +409,21 @@ func (e *Exporter) TailMainLog(lines chan *tail.Line) {
 			eximMessages.With(prometheus.Labels{"flag": "suppressed"}).Inc()
 		case "**":
 			eximMessages.With(prometheus.Labels{"flag": "failed"}).Inc()
+			errorFlag = true
 		case "==":
 			eximMessages.With(prometheus.Labels{"flag": "deferred"}).Inc()
+			errorFlag = true
 		case "Completed":
 			eximMessages.With(prometheus.Labels{"flag": "completed"}).Inc()
 		}
+		if errorFlag {
+			match := errorCodeRegexp.FindStringSubmatch(line.Text)
+			if len(match) > 0 {
+				eximMessageErrors.With(prometheus.Labels{"status": match[1], "enhanced": match[2]}).Inc()
+			}
+		}
 	}
 }
-
 func (e *Exporter) TailRejectLog(lines chan *tail.Line) {
 	for line := range lines {
 		if line.Err != nil {
@@ -433,7 +453,9 @@ func init() {
 	prometheus.MustRegister(eximMessages)
 	prometheus.MustRegister(eximReject)
 	prometheus.MustRegister(eximPanic)
+	prometheus.MustRegister(eximMessageErrors)
 	prometheus.MustRegister(readErrors)
+	prometheus.MustRegister(timeoutErrors)
 }
 
 func main() {

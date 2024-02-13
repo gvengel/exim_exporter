@@ -184,11 +184,19 @@ func TestMetrics(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, metric := range []prometheus.Collector{eximMessages, eximReject, eximPanic} {
+	for _, metric := range []prometheus.Collector{
+		eximMessages,
+		eximReject,
+		eximPanic,
+		eximMessageErrors,
+		readErrors,
+		timeoutErrors,
+	} {
 		if err := registry.Register(metric); err != nil {
 			t.Fatal(err)
 		}
 	}
+
 	if err = copySampleInput(inputPath); err != nil {
 		t.Fatal("Unable to copy sample input:", err)
 	}

@@ -1,3 +1,12 @@
+# HELP exim_log_read_errors Total number of errors encountered while reading the logs
+# TYPE exim_log_read_errors counter
+exim_log_read_errors 0
+# HELP exim_message_errors_total Number of logged messages broken down by error code (451, 550, etc)
+# TYPE exim_message_errors_total counter
+exim_message_errors_total{enhanced="",status="550"}  1
+exim_message_errors_total{enhanced="4.7.1",status="450"}  1
+exim_message_errors_total{enhanced="5.2.0",status="554"}  3
+exim_message_errors_total{enhanced="5.7.1",status="540"}  1
 # HELP exim_processes Number of running exim process broken down by state (delivering, handling, etc)
 # TYPE exim_processes gauge
 exim_processes{state="daemon"} 1
@@ -8,11 +17,11 @@ exim_processes{state="running"} 1
 # HELP exim_messages_total Total number of logged messages broken down by flag (delivered, deferred, etc)
 # TYPE exim_messages_total counter
 exim_messages_total{flag="additional"} 1
-exim_messages_total{flag="arrived"} 8
-exim_messages_total{flag="completed"} 4
-exim_messages_total{flag="deferred"} 1
+exim_messages_total{flag="arrived"} 14
+exim_messages_total{flag="completed"} 7
+exim_messages_total{flag="deferred"} 2
 exim_messages_total{flag="delivered"} 3
-exim_messages_total{flag="failed"} 4
+exim_messages_total{flag="failed"} 7
 # HELP exim_panic_total Total number of logged panic messages
 # TYPE exim_panic_total counter
 exim_panic_total 6
@@ -22,6 +31,9 @@ exim_queue 126
 # HELP exim_queue_frozen Number of messages currently frozen in queue
 # TYPE exim_queue_frozen gauge
 exim_queue_frozen 0
+# HELP exim_queue_state_timeout_errors Total number of errors encountered while reading the logs
+# TYPE exim_queue_state_timeout_errors counter
+exim_queue_state_timeout_errors 0
 # HELP exim_reject_total Total number of logged reject messages
 # TYPE exim_reject_total counter
 exim_reject_total 4
