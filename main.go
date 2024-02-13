@@ -36,6 +36,7 @@ var (
 	paniclog         = kingpin.Flag("exim.paniclog", "Path to Exim panic log file.").Default("paniclog").Envar("EXIM_PANICLOG").String()
 	eximExec         = kingpin.Flag("exim.executable", "Name of the Exim daemon executable.").Default("exim4").Envar("EXIM_EXECUTABLE").String()
 	inputPath        = kingpin.Flag("exim.input-path", "Path to Exim queue directory.").Default("/var/spool/exim4/input").Envar("EXIM_QUEUE_DIR").String()
+	frozenTimeout    = kingpin.Flag("exim.frozen-timeout", "Number of seconds before reading frozen messages is aborted").Default("5s").Envar("EXIM_FROZEN_TIMEOUT").Duration()
 	listenAddress    = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9636").Envar("WEB_LISTEN_ADDRESS").String()
 	metricsPath      = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").Envar("WEB_TELEMETRY_PATH").String()
 	useJournal       = kingpin.Flag("exim.use-journal", "Use the journal instead of log file tailing").Envar("EXIM_USE_JOURNAL").Bool()
@@ -292,7 +293,7 @@ func (e *Exporter) CountMessages(dirname string, queueSize *QueueSize, deadline 
 
 func (e *Exporter) QueueSize() QueueSize {
 	_ = level.Debug(e.logger).Log("msg", "Reading queue size")
-	deadline := time.Now().Add(time.Second * 10)
+	deadline := time.Now().Add(*frozenTimeout)
 	queueSize := QueueSize{}
 	e.CountMessages(e.inputPath, &queueSize, deadline)
 	for h := 0; h < len(BASE62); h++ {
