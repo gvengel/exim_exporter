@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -81,6 +82,13 @@ var (
 		},
 		[]string{"flag"},
 	)
+	eximMessageErrors = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: prometheus.BuildFQName("exim", "", "message_errors_total"),
+			Help: "Number of logged messages broken down by error code (451, 550, etc)",
+		},
+		[]string{"status", "enhanced"},
+	)
 	eximReject = prometheus.NewCounter(
 		prometheus.CounterOpts{
 			Name: prometheus.BuildFQName("exim", "", "reject_total"),
@@ -138,6 +146,10 @@ var (
 		return result, nil
 	}
 )
+
+// Basic status code (https://datatracker.ietf.org/doc/html/rfc821)
+// followed by optional Enhanced status code (https://datatracker.ietf.org/doc/html/rfc3463)
+var errorCodeRegexp = regexp.MustCompile(": ([2-5][0-9]{2})[ -]([2-5]\\.[0-9]{1,3}\\.[0-9]{1,3})?")
 
 type Exporter struct {
 	mainlog   string
@@ -382,6 +394,7 @@ func (e *Exporter) TailMainLog(lines chan *tail.Line) {
 			continue
 		}
 
+		errorFlag := false
 		switch parts[index] {
 		case "<=":
 			eximMessages.With(prometheus.Labels{"flag": "arrived"}).Inc()
@@ -397,14 +410,21 @@ func (e *Exporter) TailMainLog(lines chan *tail.Line) {
 			eximMessages.With(prometheus.Labels{"flag": "suppressed"}).Inc()
 		case "**":
 			eximMessages.With(prometheus.Labels{"flag": "failed"}).Inc()
+			errorFlag = true
 		case "==":
 			eximMessages.With(prometheus.Labels{"flag": "deferred"}).Inc()
+			errorFlag = true
 		case "Completed":
 			eximMessages.With(prometheus.Labels{"flag": "completed"}).Inc()
 		}
+		if errorFlag {
+			match := errorCodeRegexp.FindStringSubmatch(line.Text)
+			if len(match) > 0 {
+				eximMessageErrors.With(prometheus.Labels{"status": match[1], "enhanced": match[2]}).Inc()
+			}
+		}
 	}
 }
-
 func (e *Exporter) TailRejectLog(lines chan *tail.Line) {
 	for line := range lines {
 		if line.Err != nil {
@@ -434,6 +454,7 @@ func init() {
 	prometheus.MustRegister(eximMessages)
 	prometheus.MustRegister(eximReject)
 	prometheus.MustRegister(eximPanic)
+	prometheus.MustRegister(eximMessageErrors)
 	prometheus.MustRegister(readErrors)
 }
 
