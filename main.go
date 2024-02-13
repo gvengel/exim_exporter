@@ -343,7 +343,7 @@ func (e *Exporter) FileTail(filename string) chan *tail.Line {
 func (e *Exporter) TailMainLog(lines chan *tail.Line) {
 	for line := range lines {
 		if line.Err != nil {
-			_ = level.Error(e.logger).Log("msg", "Caught error while reading mainlog", "err", line.Err)
+			_ = level.Error(e.logger).Log("msg", "Caught errorFlag while reading mainlog", "err", line.Err)
 			readErrors.Inc()
 			continue
 		}
