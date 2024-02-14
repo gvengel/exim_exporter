@@ -238,7 +238,6 @@ func (e *Exporter) CountMessages(dirname string, queueSize *QueueSize, deadline 
 	if err != nil {
 		return
 	}
-	var isFrozen bool
 	var lineNumber int
 	for _, fileName := range messages {
 		if len(fileName) != messageIdLength || !strings.HasSuffix(fileName, headerFileSuffix) {
@@ -261,7 +260,6 @@ func (e *Exporter) CountMessages(dirname string, queueSize *QueueSize, deadline 
 		// https://www.exim.org/exim-html-current/doc/html/spec_html/ch-format_of_spool_files.html
 		fileScanner := bufio.NewScanner(headerFile)
 		fileScanner.Split(bufio.ScanLines)
-		isFrozen = false
 		lineNumber = 0
 		for fileScanner.Scan() {
 			lineNumber++
@@ -278,12 +276,9 @@ func (e *Exporter) CountMessages(dirname string, queueSize *QueueSize, deadline 
 			}
 			// If we found the frozen flag, stop scanning, since that's all we care about for now.
 			if strings.HasPrefix(fileScanner.Text(), "-frozen ") {
-				isFrozen = true
+				queueSize.frozen++
 				break
 			}
-		}
-		if isFrozen {
-			queueSize.frozen++
 		}
 	}
 }
