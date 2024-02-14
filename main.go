@@ -152,6 +152,8 @@ type QueueSize struct {
 	timedOut bool
 }
 
+var queueSizeLastTimeout float64
+
 func NewExporter(mainlog, rejectlog, paniclog, eximExec, inputPath, logLevel string, logger log.Logger) *Exporter {
 	return &Exporter{
 		mainlog,
@@ -246,7 +248,7 @@ func (e *Exporter) CountMessages(dirname string, queueSize *QueueSize, deadline 
 		queueSize.total += 1
 
 		if !deadline.IsZero() {
-			if queueSize.timedOut {
+			if queueSizeLastTimeout > 0 || queueSize.timedOut {
 				continue
 			} else if time.Now().After(deadline) {
 				queueSize.timedOut = true
@@ -298,6 +300,11 @@ func (e *Exporter) QueueSize() QueueSize {
 	for h := 0; h < len(BASE62); h++ {
 		hashPath := filepath.Join(e.inputPath, string(BASE62[h]))
 		e.CountMessages(hashPath, &queueSize, deadline)
+	}
+	if queueSize.timedOut {
+		queueSizeLastTimeout = queueSize.total
+	} else if queueSizeLastTimeout > 0 && queueSize.total < queueSizeLastTimeout*.9 {
+		queueSizeLastTimeout = 0
 	}
 	return queueSize
 }
