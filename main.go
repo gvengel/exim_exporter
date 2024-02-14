@@ -247,13 +247,16 @@ func (e *Exporter) CountMessages(dirname string, queueSize *QueueSize, deadline 
 			continue
 		}
 		queueSize.total += 1
-		if queueSize.timedOut {
-			continue
-		} else if time.Now().After(deadline) {
-			queueSize.timedOut = true
-			queueSize.frozen = 0
-			eximQueueStateTimeoutErrors.Inc()
-			continue
+
+		if !deadline.IsZero() {
+			if queueSize.timedOut {
+				continue
+			} else if time.Now().After(deadline) {
+				queueSize.timedOut = true
+				queueSize.frozen = 0
+				eximQueueStateTimeoutErrors.Inc()
+				continue
+			}
 		}
 
 		headerFile, err := os.Open(path.Join(dirname, fileName))
@@ -288,7 +291,11 @@ func (e *Exporter) CountMessages(dirname string, queueSize *QueueSize, deadline 
 
 func (e *Exporter) QueueSize() QueueSize {
 	_ = level.Debug(e.logger).Log("msg", "Reading queue size")
-	deadline := time.Now().Add(*frozenTimeout)
+	timeout := *frozenTimeout
+	var deadline time.Time
+	if timeout > 0 {
+		deadline = time.Now().Add(*frozenTimeout)
+	}
 	queueSize := QueueSize{}
 	e.CountMessages(e.inputPath, &queueSize, deadline)
 	for h := 0; h < len(BASE62); h++ {
