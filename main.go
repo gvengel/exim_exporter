@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"io"
 	stdlog "log"
 	"log/syslog"
@@ -8,8 +9,10 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/alecthomas/kingpin/v2"
 	"github.com/go-kit/kit/log"
@@ -32,7 +35,8 @@ var (
 	rejectlog        = kingpin.Flag("exim.rejectlog", "Path to Exim reject log file.").Default("rejectlog").Envar("EXIM_REJECTLOG").String()
 	paniclog         = kingpin.Flag("exim.paniclog", "Path to Exim panic log file.").Default("paniclog").Envar("EXIM_PANICLOG").String()
 	eximExec         = kingpin.Flag("exim.executable", "Name of the Exim daemon executable.").Default("exim4").Envar("EXIM_EXECUTABLE").String()
-	inputPath        = kingpin.Flag("exim.input-path", "Path to Exim queue directory.").Default("/var/spool/exim4/input").Envar("EXIM_QUEUE_DIR").String()
+	inputPath        = kingpin.Flag("exim.input-path", "Path to Exim queue directory.").Default("/var/spool/exim4/input").Envar("EXIM_QUEUE_DIR").Envar("EXIM_INPUT_PATH").String()
+	frozenTimeout    = kingpin.Flag("exim.frozen-timeout", "Number of seconds before reading frozen messages is aborted").Default("5s").Envar("EXIM_FROZEN_TIMEOUT").Duration()
 	listenAddress    = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9636").Envar("WEB_LISTEN_ADDRESS").String()
 	metricsPath      = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").Envar("WEB_TELEMETRY_PATH").String()
 	useJournal       = kingpin.Flag("exim.use-journal", "Use the journal instead of log file tailing").Envar("EXIM_USE_JOURNAL").Bool()
@@ -54,6 +58,11 @@ var (
 		"Number of messages currently in queue",
 		nil, nil,
 	)
+	eximQueueFrozen = prometheus.NewDesc(
+		prometheus.BuildFQName("exim", "", "queue_frozen"),
+		"Number of messages currently frozen in queue",
+		nil, nil,
+	)
 	eximProcesses = prometheus.NewDesc(
 		prometheus.BuildFQName("exim", "", "processes"),
 		"Number of running exim process broken down by state (delivering, handling, etc)",
@@ -65,6 +74,13 @@ var (
 			Help: "Total number of logged messages broken down by flag (delivered, deferred, etc)",
 		},
 		[]string{"flag"},
+	)
+	eximMessageErrors = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: prometheus.BuildFQName("exim", "", "message_errors_total"),
+			Help: "Number of logged messages broken down by error code (451, 550, etc)",
+		},
+		[]string{"status", "enhanced"},
 	)
 	eximReject = prometheus.NewCounter(
 		prometheus.CounterOpts{
@@ -80,7 +96,13 @@ var (
 	)
 	readErrors = prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Name: prometheus.BuildFQName("exim", "log_read", "errors"),
+			Name: prometheus.BuildFQName("exim", "", "log_read_errors"),
+			Help: "Total number of errors encountered while reading the logs",
+		},
+	)
+	timeoutErrors = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: prometheus.BuildFQName("exim", "", "queue_state_timeout_errors"),
 			Help: "Total number of errors encountered while reading the logs",
 		},
 	)
@@ -122,6 +144,10 @@ var (
 	}
 )
 
+// Basic status code (https://datatracker.ietf.org/doc/html/rfc821)
+// followed by optional Enhanced status code (https://datatracker.ietf.org/doc/html/rfc3463)
+var errorCodeRegexp = regexp.MustCompile(": ([2-5][0-9]{2})[ -]([2-5]\\.[0-9]{1,3}\\.[0-9]{1,3})?")
+
 type Exporter struct {
 	mainlog   string
 	rejectlog string
@@ -131,6 +157,14 @@ type Exporter struct {
 	logLevel  string
 	logger    log.Logger
 }
+
+type QueueSize struct {
+	total    float64
+	frozen   float64
+	timedOut bool
+}
+
+var queueSizeLastTimeout float64
 
 func NewExporter(mainlog, rejectlog, paniclog, eximExec, inputPath, logLevel string, logger log.Logger) *Exporter {
 	return &Exporter{
@@ -147,6 +181,7 @@ func NewExporter(mainlog, rejectlog, paniclog, eximExec, inputPath, logLevel str
 func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- eximUp
 	ch <- eximQueue
+	ch <- eximQueueFrozen
 	ch <- eximProcesses
 }
 
@@ -161,9 +196,8 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(eximProcesses, prometheus.GaugeValue, value, label)
 	}
 	queue := e.QueueSize()
-	if queue >= 0 {
-		ch <- prometheus.MustNewConstMetric(eximQueue, prometheus.GaugeValue, queue)
-	}
+	ch <- prometheus.MustNewConstMetric(eximQueue, prometheus.GaugeValue, queue.total)
+	ch <- prometheus.MustNewConstMetric(eximQueueFrozen, prometheus.GaugeValue, queue.frozen)
 }
 
 func (e *Exporter) ProcessStates() map[string]float64 {
@@ -205,33 +239,86 @@ func (e *Exporter) ProcessStates() map[string]float64 {
 	return states
 }
 
-func (e *Exporter) CountMessages(dirname string) float64 {
+func (e *Exporter) CountMessages(dirname string, queueSize *QueueSize, deadline time.Time) {
+	const headerFileSuffix = "-H"
+	const messageIdLength = 18 // len("xxxxxx-xxxxxx-xx") + len(headerFileSuffix)
+
 	dir, err := os.Open(dirname)
 	if err != nil {
-		return 0
+		return
 	}
 	messages, err := dir.Readdirnames(-1)
 	_ = dir.Close()
 	if err != nil {
-		return 0
+		return
 	}
-	var count float64
-	for _, name := range messages {
-		if len(name) == 18 && strings.HasSuffix(name, "-H") {
-			count += 1
+	var lineNumber int
+	for _, fileName := range messages {
+		if len(fileName) != messageIdLength || !strings.HasSuffix(fileName, headerFileSuffix) {
+			continue
+		}
+		queueSize.total += 1
+
+		if !deadline.IsZero() {
+			if queueSizeLastTimeout > 0 || queueSize.timedOut {
+				continue
+			} else if time.Now().After(deadline) {
+				queueSize.timedOut = true
+				queueSize.frozen = 0
+				timeoutErrors.Inc()
+				continue
+			}
+		}
+
+		headerFile, err := os.Open(path.Join(dirname, fileName))
+		if err != nil {
+			continue
+		}
+		// https://www.exim.org/exim-html-current/doc/html/spec_html/ch-format_of_spool_files.html
+		fileScanner := bufio.NewScanner(headerFile)
+		fileScanner.Split(bufio.ScanLines)
+		lineNumber = 0
+		for fileScanner.Scan() {
+			lineNumber++
+			// First four lines of the file contain fixed metadata
+			if lineNumber <= 4 {
+				continue
+			}
+			// Then follow a number of lines starting with a hyphen.
+			// These contain variables, which can appear in any order.
+			// If the line doesn't start with a hyphen, then we've reached the
+			// end of the variable section.
+			if !strings.HasPrefix(fileScanner.Text(), "-") {
+				break
+			}
+			// If we found the frozen flag, stop scanning, since that's all we care about for now.
+			if strings.HasPrefix(fileScanner.Text(), "-frozen ") {
+				queueSize.frozen++
+				break
+			}
 		}
 	}
-	return count
 }
 
-func (e *Exporter) QueueSize() float64 {
+func (e *Exporter) QueueSize() QueueSize {
 	_ = level.Debug(e.logger).Log("msg", "Reading queue size")
-	count := e.CountMessages(e.inputPath)
+	timeout := *frozenTimeout
+	var deadline time.Time
+	if timeout > 0 {
+		deadline = time.Now().Add(*frozenTimeout)
+	}
+	queueSize := QueueSize{}
+	e.CountMessages(e.inputPath, &queueSize, deadline)
 	for h := 0; h < len(BASE62); h++ {
 		hashPath := filepath.Join(e.inputPath, string(BASE62[h]))
-		count += e.CountMessages(hashPath)
+		e.CountMessages(hashPath, &queueSize, deadline)
 	}
-	return count
+	if queueSize.timedOut {
+		queueSizeLastTimeout = queueSize.total
+	} else if queueSizeLastTimeout > 0 && queueSize.total < queueSizeLastTimeout*.9 {
+		queueSizeLastTimeout = 0
+	}
+	return queueSize
 }
 
 func (e *Exporter) Start() {
@@ -274,7 +361,7 @@ func (e *Exporter) FileTail(filename string) chan *tail.Line {
 func (e *Exporter) TailMainLog(lines chan *tail.Line) {
 	for line := range lines {
 		if line.Err != nil {
-			_ = level.Error(e.logger).Log("msg", "Caught error while reading mainlog", "err", line.Err)
+			_ = level.Error(e.logger).Log("msg", "Caught errorFlag while reading mainlog", "err", line.Err)
 			readErrors.Inc()
 			continue
 		}
@@ -303,6 +390,7 @@ func (e *Exporter) TailMainLog(lines chan *tail.Line) {
 			continue
 		}
 
+		errorFlag := false
 		switch parts[index] {
 		case "<=":
 			eximMessages.With(prometheus.Labels{"flag": "arrived"}).Inc()
@@ -318,14 +406,21 @@ func (e *Exporter) TailMainLog(lines chan *tail.Line) {
 			eximMessages.With(prometheus.Labels{"flag": "suppressed"}).Inc()
 		case "**":
 			eximMessages.With(prometheus.Labels{"flag": "failed"}).Inc()
+			errorFlag = true
 		case "==":
 			eximMessages.With(prometheus.Labels{"flag": "deferred"}).Inc()
+			errorFlag = true
 		case "Completed":
 			eximMessages.With(prometheus.Labels{"flag": "completed"}).Inc()
 		}
+		if errorFlag {
+			match := errorCodeRegexp.FindStringSubmatch(line.Text)
+			if len(match) > 0 {
+				eximMessageErrors.With(prometheus.Labels{"status": match[1], "enhanced": match[2]}).Inc()
+			}
+		}
 	}
 }
-
 func (e *Exporter) TailRejectLog(lines chan *tail.Line) {
 	for line := range lines {
 		if line.Err != nil {
@@ -355,7 +450,9 @@ func init() {
 	prometheus.MustRegister(eximMessages)
 	prometheus.MustRegister(eximReject)
 	prometheus.MustRegister(eximPanic)
+	prometheus.MustRegister(eximMessageErrors)
 	prometheus.MustRegister(readErrors)
+	prometheus.MustRegister(timeoutErrors)
 }
 
 func main() {
