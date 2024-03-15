@@ -89,6 +89,8 @@ var (
 var processFlags = map[string]string{
 	"-Mc": "delivering",
 	"-bd": "handling",
+	"-bdf": "handling",
+	"-q": "running",
 	"-qG": "running",
 }
 
@@ -190,7 +192,7 @@ func (e *Exporter) ProcessStates() map[string]float64 {
 			isDaemon := false
 			if p.leader {
 				for _, arg := range p.cmdline {
-					if arg == "-bd" {
+					if arg == "-bd" || arg == "-bdf" {
 						isDaemon = true
 					}
 				}
