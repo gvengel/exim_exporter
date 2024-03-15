@@ -10,7 +10,7 @@ require (
 	github.com/prometheus/client_golang v1.17.0
 	github.com/prometheus/common v0.45.0
 	github.com/prometheus/exporter-toolkit v0.11.0
-	github.com/shirou/gopsutil/v3 v3.23.10
+	github.com/shirou/gopsutil/v3 v3.24.2
 )
 
 require (
@@ -35,12 +35,12 @@ require (
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/xhit/go-str2duration/v2 v2.1.0 // indirect
-	github.com/yusufpapurcu/wmi v1.2.3 // indirect
+	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	golang.org/x/crypto v0.16.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/oauth2 v0.13.0 // indirect
 	golang.org/x/sync v0.5.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/sys v0.17.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
