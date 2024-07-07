@@ -87,11 +87,11 @@ var (
 )
 
 var processFlags = map[string]string{
-	"-Mc": "delivering",
-	"-bd": "handling",
+	"-Mc":  "delivering",
+	"-bd":  "handling",
 	"-bdf": "handling",
-	"-q": "running",
-	"-qG": "running",
+	"-q":   "running",
+	"-qG":  "running",
 }
 
 type Process struct {
@@ -219,7 +219,7 @@ func (e *Exporter) CountMessages(dirname string) float64 {
 	}
 	var count float64
 	for _, name := range messages {
-		if len(name) == 18 && strings.HasSuffix(name, "-H") {
+		if (len(name) == 18 || len(name) == 25) && strings.HasSuffix(name, "-H") {
 			count += 1
 		}
 	}
