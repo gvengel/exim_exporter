@@ -28,7 +28,7 @@ func isCaseSensitiveFilesystem(inputPath string) (bool, error) {
 	}
 }
 
-func writeMockMessage(path string, hash string, index int) error {
+func writeMockMessage(path string, hash string, index int, useLegacyFormat bool) error {
 	msgName := ""
 	for i := 0; i < 4; i++ {
 		msgName += string(BASE62[rand.Intn(62)])
@@ -37,12 +37,24 @@ func writeMockMessage(path string, hash string, index int) error {
 	msgName += string(BASE62[index])
 	// Add the last char of the first segment should match our hash dir
 	msgName += hash + "-"
-	for i := 0; i < 6; i++ {
-		msgName += string(BASE62[rand.Intn(62)])
-	}
-	msgName += "-"
-	for i := 0; i < 2; i++ {
-		msgName += string(BASE62[rand.Intn(62)])
+	if useLegacyFormat {
+		// Message ID format for exim < 4.97
+		for i := 0; i < 6; i++ {
+			msgName += string(BASE62[rand.Intn(62)])
+		}
+		msgName += "-"
+		for i := 0; i < 2; i++ {
+			msgName += string(BASE62[rand.Intn(62)])
+		}
+	} else {
+		// Message ID format for exim >= 4.97
+		for i := 0; i < 11; i++ {
+			msgName += string(BASE62[rand.Intn(62)])
+		}
+		msgName += "-"
+		for i := 0; i < 4; i++ {
+			msgName += string(BASE62[rand.Intn(62)])
+		}
 	}
 	for _, fileType := range "HD" {
 		fileName := msgName + "-" + string(fileType)
@@ -63,7 +75,7 @@ func buildMockInput(inputPath string) error {
 			return err
 		}
 		for i := 0; i <= h%3; i++ {
-			if err := writeMockMessage(hashPath, hashChar, i); err != nil {
+			if err := writeMockMessage(hashPath, hashChar, i, i%2 == 0); err != nil {
 				return err
 			}
 		}
@@ -71,7 +83,7 @@ func buildMockInput(inputPath string) error {
 	// Write out a couple messages using the single dir pattern
 	for i := 0; i < 3; i++ {
 		hashChar := string(BASE62[rand.Intn(62)])
-		if err := writeMockMessage(inputPath, hashChar, i); err != nil {
+		if err := writeMockMessage(inputPath, hashChar, i, i%2 == 0); err != nil {
 			return err
 		}
 	}
