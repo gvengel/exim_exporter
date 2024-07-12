@@ -1,5 +1,5 @@
 FROM --platform=amd64 ubuntu:focal
-ENV GO_VERSION=1.20.5
+ENV GO_VERSION=1.22.5
 ENV PATH="${PATH}:/opt/go/bin"
 WORKDIR /opt/exim_exporter
 RUN apt-get update && apt-get install -y ca-certificates wget docker.io
