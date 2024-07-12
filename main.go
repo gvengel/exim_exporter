@@ -16,6 +16,7 @@ import (
 	"github.com/go-kit/kit/log/level"
 
 	"github.com/prometheus/client_golang/prometheus"
+	version_collector "github.com/prometheus/client_golang/prometheus/collectors/version"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/promlog"
 	"github.com/prometheus/common/promlog/flag"
@@ -353,7 +354,7 @@ func (e *Exporter) TailPanicLog(lines chan *tail.Line) {
 }
 
 func init() {
-	prometheus.MustRegister(version.NewCollector("exim_exporter"))
+	prometheus.MustRegister(version_collector.NewCollector("exim_exporter"))
 	prometheus.MustRegister(eximMessages)
 	prometheus.MustRegister(eximReject)
 	prometheus.MustRegister(eximPanic)
