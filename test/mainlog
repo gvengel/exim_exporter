@@ -20,3 +20,16 @@
 2020-06-20 02:32:57 -0200 [789] 1jmKso-0009d4-Uf ** molly@zee.corp R=dnslookup T=remote_smtp H=mail.zee.corp [3.3.3.3] X=TLS1.2:ECDHE_RSA_AES_256_GCM_SHA384:256 CV=yes DN="C=US,ST=Fake,L=Lost,O=Zee Corp,CN=mail.zee.corp": SMTP error from remote mail server after end of data: 554 5.2.0 mKr3jsd25ZIfXmKr4jFD2w Recipient Mailbox Full [504]
 2020-06-20 03:32:57 +0200 1jmKsr-00040h-1G <= <> R=1jmKso-0009d4-Uf U=Debian-exim P=local S=9521
 2020-06-20 04:32:57 -0200 1jmKsr-00040h-1G <= <> R=1jmKso-0009d4-Uf U=Debian-exim P=local S=9521
+2020-06-20 05:13:01 1raAO5-0091Cv-IH <= noreply@test.corp H=(test.corp) [2.2.2.2] P=smtp S=8965
+2020-06-20 05:13:04 1raAO5-0091Cv-IH ** dave@foo.corp R=dnslookup T=remote_smtp H=(relay.test.corp) [4.4.4.4]: SMTP error from remote mail server after end of data: 550 Message was not accepted -- invalid mailbox.  Local mailbox dave@foo.corp is unavailable: dave's not here man
+2020-06-20 05:13:04 1raAO8-009PRt-V3 <= <> R=1raAO5-0091Cv-IH U=Debian-exim P=local S=10651
+2020-06-20 05:13:04 1raAO5-0091Cv-IH Completed
+2020-06-24 00:13:03 1raAO7-0094KF-7u <= noreply@test.corp H=(test.corp) [2.2.2.2] P=smtp S=35794
+2020-06-24 00:13:06 1raAO7-0094KF-7u ** rudy@foo.corp R=dnslookup T=remote_smtp H=(relay.test.corp) [4.4.4.4]: SMTP error from remote mail server after RCPT TO:<rudy@test.corp>: 540 5.7.1 <rudy@test.corp>: recipient address rejected: Blocked
+2020-06-24 00:13:06 1raAOA-009PWF-9J <= <> R=1raAO7-0094KF-7u U=Debian-exim P=local S=37516
+2020-06-24 00:13:06 1raAO7-0094KF-7u Completed
+2020-06-24 00:20:14 1raAV4-009jr4-9x <= noreply@test.corp H=(test.corp) [2.2.2.2] P=smtp S=9237
+2020-06-24 00:20:20 1raAV4-009jr4-9x == jack@test.corp R=dnslookup T=remote_smtp defer (-44) H=(relay.test.corp) [4.4.4.4: SMTP error from remote mail server after RCPT TO:<jack@test.corp>: 450 4.7.1 <jack@test.corp>: Recipient address rejected: Recipient not available
+2020-06-24 00:20:20 1raAV4-009jr4-9x ** jack@test.corp: retry timeout exceeded
+2020-06-24 00:20:20 1raAVA-00A0wC-Dg <= <> R=1raAV4-009jr4-9x U=Debian-exim P=local S=10939
+2020-06-24 00:20:20 1raAV4-009jr4-9x Completed
