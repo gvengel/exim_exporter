@@ -104,7 +104,7 @@ var (
 	timeoutErrors = prometheus.NewCounter(
 		prometheus.CounterOpts{
 			Name: prometheus.BuildFQName("exim", "", "queue_state_timeout_errors"),
-			Help: "Total number of errors encountered while reading the logs",
+			Help: "Total number of timeout errors encountered while reading message states from the queue",
 		},
 	)
 )
@@ -200,7 +200,9 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	}
 	queue := e.QueueSize()
 	ch <- prometheus.MustNewConstMetric(eximQueue, prometheus.GaugeValue, queue.total)
-	ch <- prometheus.MustNewConstMetric(eximQueueFrozen, prometheus.GaugeValue, queue.frozen)
+	if queueSizeLastTimeout == 0 {
+		ch <- prometheus.MustNewConstMetric(eximQueueFrozen, prometheus.GaugeValue, queue.frozen)
+	}
 }
 
 func (e *Exporter) ProcessStates() map[string]float64 {
