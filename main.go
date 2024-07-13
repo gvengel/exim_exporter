@@ -308,7 +308,7 @@ func (e *Exporter) QueueSize() QueueSize {
 	timeout := *frozenTimeout
 	var deadline time.Time
 	if timeout > 0 {
-		deadline = time.Now().Add(*frozenTimeout)
+		deadline = time.Now().Add(timeout)
 	}
 	queueSize := QueueSize{}
 	e.CountMessages(e.inputPath, &queueSize, deadline)
