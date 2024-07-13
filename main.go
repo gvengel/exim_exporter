@@ -316,6 +316,8 @@ func (e *Exporter) QueueSize() QueueSize {
 		hashPath := filepath.Join(e.inputPath, string(BASE62[h]))
 		e.CountMessages(hashPath, &queueSize, deadline)
 	}
+	// If reading the queue states timed out, stop attempting to read states until
+	// the queue decreases by 10%
 	if queueSize.timedOut {
 		queueSizeLastTimeout = queueSize.total
 	} else if queueSizeLastTimeout > 0 && queueSize.total < queueSizeLastTimeout*.9 {
