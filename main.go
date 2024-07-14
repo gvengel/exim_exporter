@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	version_collector "github.com/prometheus/client_golang/prometheus/collectors/version"
 	"io"
 	stdlog "log"
 	"log/syslog"
@@ -19,7 +20,6 @@ import (
 	"github.com/go-kit/kit/log/level"
 
 	"github.com/prometheus/client_golang/prometheus"
-	version_collector "github.com/prometheus/client_golang/prometheus/collectors/version"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/promlog"
 	"github.com/prometheus/common/promlog/flag"
@@ -64,6 +64,11 @@ var (
 		"Number of messages currently frozen in queue",
 		nil, nil,
 	)
+	exitQueueStateTimeoutErrors = prometheus.NewDesc(
+		prometheus.BuildFQName("exim", "", "queue_state_timeout_errors"),
+		"Total number of timeout errors encountered while reading message states from the queue",
+		nil, nil,
+	)
 	eximProcesses = prometheus.NewDesc(
 		prometheus.BuildFQName("exim", "", "processes"),
 		"Number of running exim process broken down by state (delivering, handling, etc)",
@@ -99,12 +104,6 @@ var (
 		prometheus.CounterOpts{
 			Name: prometheus.BuildFQName("exim", "", "log_read_errors"),
 			Help: "Total number of errors encountered while reading the logs",
-		},
-	)
-	timeoutErrors = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Name: prometheus.BuildFQName("exim", "", "queue_state_timeout_errors"),
-			Help: "Total number of timeout errors encountered while reading message states from the queue",
 		},
 	)
 )
@@ -145,6 +144,9 @@ var (
 		}
 		return result, nil
 	}
+	deadlineExceeded = func(deadline time.Time) bool {
+		return time.Now().After(deadline)
+	}
 )
 
 // Basic status code (https://datatracker.ietf.org/doc/html/rfc821)
@@ -168,6 +170,7 @@ type QueueSize struct {
 }
 
 var queueSizeLastTimeout float64
+var queueSizeTimeoutCounter float64
 
 func NewExporter(mainlog, rejectlog, paniclog, eximExec, inputPath, logLevel string, logger log.Logger) *Exporter {
 	return &Exporter{
@@ -186,6 +189,7 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- eximQueue
 	ch <- eximQueueFrozen
 	ch <- eximProcesses
+	ch <- exitQueueStateTimeoutErrors
 }
 
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
@@ -203,6 +207,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	if queueSizeLastTimeout == 0 {
 		ch <- prometheus.MustNewConstMetric(eximQueueFrozen, prometheus.GaugeValue, queue.frozen)
 	}
+	ch <- prometheus.MustNewConstMetric(exitQueueStateTimeoutErrors, prometheus.CounterValue, queueSizeTimeoutCounter)
 }
 
 func (e *Exporter) ProcessStates() map[string]float64 {
@@ -267,10 +272,10 @@ func (e *Exporter) CountMessages(dirname string, queueSize *QueueSize, deadline 
 		if !deadline.IsZero() {
 			if queueSizeLastTimeout > 0 || queueSize.timedOut {
 				continue
-			} else if time.Now().After(deadline) {
+			} else if deadlineExceeded(deadline) {
 				queueSize.timedOut = true
 				queueSize.frozen = 0
-				timeoutErrors.Inc()
+				queueSizeTimeoutCounter += 1
 				continue
 			}
 		}
@@ -459,7 +464,6 @@ func init() {
 	prometheus.MustRegister(eximPanic)
 	prometheus.MustRegister(eximMessageErrors)
 	prometheus.MustRegister(readErrors)
-	prometheus.MustRegister(timeoutErrors)
 }
 
 func main() {
