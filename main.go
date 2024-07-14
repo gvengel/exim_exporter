@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	version_collector "github.com/prometheus/client_golang/prometheus/collectors/version"
 	"io"
 	stdlog "log"
 	"log/syslog"
@@ -19,7 +20,6 @@ import (
 	"github.com/go-kit/kit/log/level"
 
 	"github.com/prometheus/client_golang/prometheus"
-	version_collector "github.com/prometheus/client_golang/prometheus/collectors/version"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/promlog"
 	"github.com/prometheus/common/promlog/flag"
@@ -145,6 +145,9 @@ var (
 		}
 		return result, nil
 	}
+	deadlineExceeded = func(deadline time.Time) bool {
+		return time.Now().After(deadline)
+	}
 )
 
 // Basic status code (https://datatracker.ietf.org/doc/html/rfc821)
@@ -267,7 +270,7 @@ func (e *Exporter) CountMessages(dirname string, queueSize *QueueSize, deadline 
 		if !deadline.IsZero() {
 			if queueSizeLastTimeout > 0 || queueSize.timedOut {
 				continue
-			} else if time.Now().After(deadline) {
+			} else if deadlineExceeded(deadline) {
 				queueSize.timedOut = true
 				queueSize.frozen = 0
 				timeoutErrors.Inc()

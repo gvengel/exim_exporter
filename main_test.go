@@ -200,6 +200,15 @@ func TestMetrics(t *testing.T) {
 	if err = copySampleInput(inputPath); err != nil {
 		t.Fatal("Unable to copy sample input:", err)
 	}
+	t.Run("timeout", func(t *testing.T) {
+		timeout, _ := time.ParseDuration("5s")
+		frozenTimeout = &timeout
+		deadlineExceeded = func(deadline time.Time) bool {
+			fmt.Println("TESTING")
+			return true
+		}
+		collectAndCompareTestCase("timeout", registry, t)
+	})
 	t.Run("input", func(t *testing.T) {
 		collectAndCompareTestCase("input", registry, t)
 	})
