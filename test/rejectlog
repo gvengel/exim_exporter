@@ -2,3 +2,6 @@
 2020-06-13 16:49:49 H=(test.corp) [1.1.1.1] F=<noreply@test.corp> rejected RCPT <error!@dummy.corp>: restricted characters in address
 2020-06-13 17:55:20 +0200 SMTP protocol synchronization error (next input sent too soon: pipelining was not advertised): rejected
 2020-06-13 19:49:49 +0200 H=(test.corp) [1.1.1.1] F=<noreply@test.corp> rejected RCPT <error!@dummy.corp>: restricted characters in address
+2024-08-21 23:25:52 H=invalid.example (invalid.example) [4.4.4.4] X=TLS1.2:ECDHE_SECP256R1__ECDSA_SHA512__AES_256_GCM:256 CV=no F=<bob@null.corp> rejected RCPT <alice@null.corp>: SPF check failed.
+2024-08-21 07:19:51 dovecot_login authenticator failed for ([4.4.4.4]) [4.4.4.4]: 535 Incorrect authentication data (set_id=admin)
+2024-08-21 11:09:52 H=(abcd1234) [1.1.1.1] X=TLS1.2:ECDHE_SECP256R1__ECDSA_SHA512__AES_256_GCM:256 CV=no F=<dummy@example.com> rejected RCPT <admin@example.com>: relay not permitted

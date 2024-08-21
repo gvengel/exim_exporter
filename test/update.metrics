@@ -21,7 +21,10 @@ exim_panic_total 12
 exim_queue 126
 # HELP exim_reject_total Total number of logged reject messages
 # TYPE exim_reject_total counter
-exim_reject_total 8
+exim_reject_total{reason="535 Incorrect authentication data"} 2
+exim_reject_total{reason="SPF check failed"} 2
+exim_reject_total{reason="other"} 8
+exim_reject_total{reason="relay not permitted"} 2
 # HELP exim_up Whether or not the main exim daemon is running
 # TYPE exim_up gauge
 exim_up 1

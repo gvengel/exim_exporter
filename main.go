@@ -67,11 +67,12 @@ var (
 		},
 		[]string{"flag"},
 	)
-	eximReject = prometheus.NewCounter(
+	eximReject = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: prometheus.BuildFQName("exim", "", "reject_total"),
 			Help: "Total number of logged reject messages",
 		},
+		[]string{"reason"},
 	)
 	eximPanic = prometheus.NewCounter(
 		prometheus.CounterOpts{
@@ -337,7 +338,16 @@ func (e *Exporter) TailRejectLog(lines chan *tail.Line) {
 			continue
 		}
 		_ = level.Debug(e.logger).Log("file", "rejectlog", "msg", line.Text)
-		eximReject.Inc()
+
+		if strings.HasSuffix(line.Text, "SPF check failed.") {
+			eximReject.With(prometheus.Labels{"reason": "SPF check failed"}).Inc()
+		} else if strings.HasSuffix(line.Text, "relay not permitted") {
+			eximReject.With(prometheus.Labels{"reason": "relay not permitted"}).Inc()
+		} else if strings.Contains(line.Text, "535 Incorrect authentication data") {
+			eximReject.With(prometheus.Labels{"reason": "535 Incorrect authentication data"}).Inc()
+		} else {
+			eximReject.With(prometheus.Labels{"reason": "other"}).Inc()
+		}
 	}
 }
 
