@@ -7,12 +7,14 @@ exim_processes{state="other"} 2
 exim_processes{state="running"} 1
 # HELP exim_messages_total Total number of logged messages broken down by flag (delivered, deferred, etc)
 # TYPE exim_messages_total counter
-exim_messages_total{flag="additional"} 1
-exim_messages_total{flag="arrived"} 8
-exim_messages_total{flag="completed"} 4
-exim_messages_total{flag="deferred"} 1
-exim_messages_total{flag="delivered"} 3
-exim_messages_total{flag="failed"} 4
+exim_messages_total{flag="additional",router="",transport=""} 1
+exim_messages_total{flag="arrived",router="",transport=""} 8
+exim_messages_total{flag="completed",router="",transport=""} 4
+exim_messages_total{flag="deferred",router="dnslookup",transport="remote_smtp"} 1
+exim_messages_total{flag="delivered",router="dnslookup",transport="remote_smtp"} 2
+exim_messages_total{flag="delivered",router="dnslookup",transport="remote_smtp_smarthost"} 1
+exim_messages_total{flag="failed",router="",transport=""} 1
+exim_messages_total{flag="failed",router="dnslookup",transport="remote_smtp"} 3
 # HELP exim_panic_total Total number of logged panic messages
 # TYPE exim_panic_total counter
 exim_panic_total 6

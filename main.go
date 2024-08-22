@@ -65,7 +65,7 @@ var (
 			Name: prometheus.BuildFQName("exim", "", "messages_total"),
 			Help: "Total number of logged messages broken down by flag (delivered, deferred, etc)",
 		},
-		[]string{"flag"},
+		[]string{"flag", "router", "transport"},
 	)
 	eximReject = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -283,10 +283,25 @@ func (e *Exporter) TailMainLog(lines chan *tail.Line) {
 			continue
 		}
 		_ = level.Debug(e.logger).Log("file", "mainlog", "msg", line.Text)
-		parts := strings.SplitN(line.Text, " ", 7)
+		parts := strings.SplitN(line.Text, " ", 100)
 		size := len(parts)
 		if size < 3 {
 			continue
+		}
+
+		router := ""
+		transport := ""
+		for _, v := range parts {
+			if strings.HasPrefix(v, "R=") {
+				// this is the Router
+				router, _ = strings.CutPrefix(v, "R=")
+				_ = level.Debug(e.logger).Log("file", "mainlog", "msg", "found router", router)
+			}
+			if strings.HasPrefix(v, "T=") {
+				// this is the Transport
+				transport, _ = strings.CutPrefix(v, "T=")
+				_ = level.Debug(e.logger).Log("file", "mainlog", "msg", "found transport", transport)
+			}
 		}
 
 		index := 2
@@ -309,23 +324,23 @@ func (e *Exporter) TailMainLog(lines chan *tail.Line) {
 
 		switch parts[index] {
 		case "<=":
-			eximMessages.With(prometheus.Labels{"flag": "arrived"}).Inc()
+			eximMessages.With(prometheus.Labels{"flag": "arrived", "router": "", "transport": ""}).Inc()
 		case "(=":
-			eximMessages.With(prometheus.Labels{"flag": "fakereject"}).Inc()
+			eximMessages.With(prometheus.Labels{"flag": "fakereject", "router": "", "transport": ""}).Inc()
 		case "=>":
-			eximMessages.With(prometheus.Labels{"flag": "delivered"}).Inc()
+			eximMessages.With(prometheus.Labels{"flag": "delivered", "router": router, "transport": transport}).Inc()
 		case "->":
-			eximMessages.With(prometheus.Labels{"flag": "additional"}).Inc()
+			eximMessages.With(prometheus.Labels{"flag": "additional", "router": "", "transport": ""}).Inc()
 		case ">>":
-			eximMessages.With(prometheus.Labels{"flag": "cutthrough"}).Inc()
+			eximMessages.With(prometheus.Labels{"flag": "cutthrough", "router": "", "transport": ""}).Inc()
 		case "*>":
-			eximMessages.With(prometheus.Labels{"flag": "suppressed"}).Inc()
+			eximMessages.With(prometheus.Labels{"flag": "suppressed", "router": "", "transport": ""}).Inc()
 		case "**":
-			eximMessages.With(prometheus.Labels{"flag": "failed"}).Inc()
+			eximMessages.With(prometheus.Labels{"flag": "failed", "router": router, "transport": transport}).Inc()
 		case "==":
-			eximMessages.With(prometheus.Labels{"flag": "deferred"}).Inc()
+			eximMessages.With(prometheus.Labels{"flag": "deferred", "router": router, "transport": transport}).Inc()
 		case "Completed":
-			eximMessages.With(prometheus.Labels{"flag": "completed"}).Inc()
+			eximMessages.With(prometheus.Labels{"flag": "completed", "router": "", "transport": ""}).Inc()
 		}
 	}
 }
