@@ -199,16 +199,28 @@ func TestMetrics(t *testing.T) {
 	if err = copySampleInput(inputPath); err != nil {
 		t.Fatal("Unable to copy sample input:", err)
 	}
+	t.Run("input", func(t *testing.T) {
+		collectAndCompareTestCase("input", registry, t)
+	})
 	t.Run("timeout", func(t *testing.T) {
-		timeout, _ := time.ParseDuration("5s")
+		// Set frozen timeout to non-zero value, which would normally come form the CLI
+		timeout, err := time.ParseDuration("5s")
+		if err != nil {
+			t.Fatalf("Failed to parse timeout duration: %v", err)
+		}
 		frozenTimeout = &timeout
+
+		// Force the deadline to appear to have exceeded without have to actually wait
+		deadlineExceededSave := deadlineExceeded
+		defer func() { deadlineExceeded = deadlineExceededSave }()
 		deadlineExceeded = func(deadline time.Time) bool {
 			return true
 		}
+
 		collectAndCompareTestCase("timeout", registry, t)
-	})
-	t.Run("input", func(t *testing.T) {
-		collectAndCompareTestCase("input", registry, t)
+
+		// Reset the global timout counter so we don't affect other tests
+		queueSizeTimeoutCounter = 0
 	})
 	if err = resetInput(inputPath); err != nil {
 		t.Fatal("Unable to reset input:", err)
