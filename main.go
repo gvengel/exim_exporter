@@ -373,11 +373,11 @@ func (e *Exporter) FileTail(filename string) chan *tail.Line {
 func (e *Exporter) TailMainLog(lines chan *tail.Line) {
 	for line := range lines {
 		if line.Err != nil {
-			_ = level.Error(e.logger).Log("msg", "Caught errorFlag while reading mainlog", "err", line.Err)
+			_ = level.Error(e.logger).Log("msg", "Caught error while reading mainlog", "err", line.Err)
 			readErrors.Inc()
 			continue
 		}
-		_ = level.Debug(e.logger).Log("file", "mainlong", "msg", line.Text)
+		_ = level.Debug(e.logger).Log("file", "mainlog", "msg", line.Text)
 		parts := strings.SplitN(line.Text, " ", 7)
 		size := len(parts)
 		if size < 3 {
