@@ -36,12 +36,12 @@ var (
 	paniclog         = kingpin.Flag("exim.paniclog", "Path to Exim panic log file.").Default("paniclog").Envar("EXIM_PANICLOG").String()
 	eximExec         = kingpin.Flag("exim.executable", "Name of the Exim daemon executable.").Default("exim4").Envar("EXIM_EXECUTABLE").String()
 	inputPath        = kingpin.Flag("exim.input-path", "Path to Exim queue directory.").Default("/var/spool/exim4/input").Envar("EXIM_QUEUE_DIR").Envar("EXIM_INPUT_PATH").String()
-	frozenTimeout    = kingpin.Flag("exim.frozen-timeout", "Number of seconds before reading frozen messages is aborted").Default("5s").Envar("EXIM_FROZEN_TIMEOUT").Duration()
-	listenAddress    = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9636").Envar("WEB_LISTEN_ADDRESS").String()
-	metricsPath      = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").Envar("WEB_TELEMETRY_PATH").String()
 	useJournal       = kingpin.Flag("exim.use-journal", "Use the journal instead of log file tailing").Envar("EXIM_USE_JOURNAL").Bool()
 	syslogIdentifier = kingpin.Flag("exim.syslog-identifier", "Syslog identifier used by Exim").Default("exim").Envar("EXIM_SYSLOG_IDENTIFIER").String()
 	tailPoll         = kingpin.Flag("tail.poll", "Poll logs for changes instead of using inotify.").Envar("TAIL_POLL").Bool()
+	frozenTimeout    = kingpin.Flag("queue.read-timeout", "Duration before reading the headers of all queued messages is aborted").Default("5s").Envar("QUEUE_READ_TIMEOUT").Duration()
+	listenAddress    = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9636").Envar("WEB_LISTEN_ADDRESS").String()
+	metricsPath      = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").Envar("WEB_TELEMETRY_PATH").String()
 	webConfigFile    = kingpin.Flag("web.config.file", "[EXPERIMENTAL] Path to configuration file that can enable TLS or authentication.").Default("").Envar("WEB_CONFIG_FILE").String()
 )
 
@@ -65,7 +65,7 @@ var (
 	)
 	eximQueueStateTimeoutErrors = prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Name: prometheus.BuildFQName("exim", "", "queue_state_timeout_errors"),
+			Name: prometheus.BuildFQName("exim", "", "queue_read_timeout_errors_total"),
 			Help: "Total number of errors encountered while reading the logs",
 		},
 	)

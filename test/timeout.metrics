@@ -1,0 +1,18 @@
+# HELP exim_log_read_errors Total number of errors encountered while reading the logs
+# TYPE exim_log_read_errors counter
+exim_log_read_errors 0
+# HELP exim_panic_total Total number of logged panic messages
+# TYPE exim_panic_total counter
+exim_panic_total 0
+# HELP exim_queue Number of messages currently in queue
+# TYPE exim_queue gauge
+exim_queue 2
+# HELP exim_queue_read_timeout_errors_total Total number of timeout errors encountered while reading message states from the queue
+# TYPE exim_queue_read_timeout_errors_total counter
+exim_queue_read_timeout_errors_total 1
+# HELP exim_reject_total Total number of logged reject messages
+# TYPE exim_reject_total counter
+exim_reject_total 0
+# HELP exim_up Whether or not the main exim daemon is running
+# TYPE exim_up gauge
+exim_up 0
