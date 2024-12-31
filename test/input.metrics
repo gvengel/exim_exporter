@@ -1,18 +1,15 @@
 # HELP exim_log_read_errors Total number of errors encountered while reading the logs
 # TYPE exim_log_read_errors counter
 exim_log_read_errors 0
-# HELP exim_processes Number of running exim process broken down by state (delivering, handling, etc)
-# TYPE exim_processes gauge
-exim_processes{state="daemon"} 1
 # HELP exim_panic_total Total number of logged panic messages
 # TYPE exim_panic_total counter
 exim_panic_total 0
 # HELP exim_queue Number of messages currently in queue
 # TYPE exim_queue gauge
-exim_queue 126
+exim_queue 2
 # HELP exim_queue_frozen Number of messages currently frozen in queue
 # TYPE exim_queue_frozen gauge
-exim_queue_frozen 0
+exim_queue_frozen 1
 # HELP exim_queue_state_timeout_errors Total number of timeout errors encountered while reading message states from the queue
 # TYPE exim_queue_state_timeout_errors counter
 exim_queue_state_timeout_errors 0
@@ -21,4 +18,4 @@ exim_queue_state_timeout_errors 0
 exim_reject_total 0
 # HELP exim_up Whether or not the main exim daemon is running
 # TYPE exim_up gauge
-exim_up 1
+exim_up 0

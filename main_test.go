@@ -66,6 +66,26 @@ func writeMockMessage(path string, hash string, index int, useLegacyFormat bool)
 	}
 	return nil
 }
+
+func copySampleInput(inputPath string) error {
+	dir, _ := os.Open(filepath.Join("test", "input"))
+	messages, _ := dir.Readdirnames(-1)
+	_ = dir.Close()
+	for _, fileName := range messages {
+		src := filepath.Join(dir.Name(), fileName)
+		dst := filepath.Join(inputPath, fileName)
+		buf, err := os.ReadFile(src)
+		if err != nil {
+			return err
+		}
+		err = os.WriteFile(dst, buf, 0644)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func buildMockInput(inputPath string) error {
 	// Write out test messages to a standard hash dir structure
 	for h := 0; h < 62; h++ {
@@ -88,6 +108,11 @@ func buildMockInput(inputPath string) error {
 		}
 	}
 	return nil
+}
+
+func resetInput(inputPath string) error {
+	_ = os.RemoveAll(inputPath)
+	return os.MkdirAll(inputPath, 0755)
 }
 
 func collectAndCompareTestCase(name string, gatherer prometheus.Gatherer, t *testing.T) {
@@ -123,8 +148,8 @@ func TestMetrics(t *testing.T) {
 	}
 	defer func() { _ = os.RemoveAll(tempPath) }()
 	inputPath := filepath.Join(tempPath, "input")
-	if err := os.MkdirAll(inputPath, 0755); err != nil {
-		t.Fatal(err)
+	if err := resetInput(inputPath); err != nil {
+		t.Fatal("Unable to reset", inputPath)
 	}
 
 	// Setup temporary log files so we can stream data into them
@@ -159,12 +184,47 @@ func TestMetrics(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, metric := range []prometheus.Collector{eximMessages, eximReject, eximPanic} {
+	for _, metric := range []prometheus.Collector{
+		eximMessages,
+		eximReject,
+		eximPanic,
+		eximMessageErrors,
+		readErrors,
+	} {
 		if err := registry.Register(metric); err != nil {
 			t.Fatal(err)
 		}
 	}
 
+	if err = copySampleInput(inputPath); err != nil {
+		t.Fatal("Unable to copy sample input:", err)
+	}
+	t.Run("input", func(t *testing.T) {
+		collectAndCompareTestCase("input", registry, t)
+	})
+	t.Run("timeout", func(t *testing.T) {
+		// Set frozen timeout to non-zero value, which would normally come form the CLI
+		timeout, err := time.ParseDuration("5s")
+		if err != nil {
+			t.Fatalf("Failed to parse timeout duration: %v", err)
+		}
+		frozenTimeout = &timeout
+
+		// Force the deadline to appear to have exceeded without have to actually wait
+		deadlineExceededSave := deadlineExceeded
+		defer func() { deadlineExceeded = deadlineExceededSave }()
+		deadlineExceeded = func(deadline time.Time) bool {
+			return true
+		}
+
+		collectAndCompareTestCase("timeout", registry, t)
+
+		// Reset the global timout counter so we don't affect other tests
+		queueSizeTimeoutCounter = 0
+	})
+	if err = resetInput(inputPath); err != nil {
+		t.Fatal("Unable to reset input:", err)
+	}
 	getProcesses = func() ([]*Process, error) {
 		return []*Process{
 			{[]string{"/bin/bash", "-x"}, false},
