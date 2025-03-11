@@ -259,11 +259,12 @@ func (e *Exporter) FileTail(filename string) chan *tail.Line {
 		logger = tail.DiscardingLogger
 	}
 	t, err := tail.TailFile(filename, tail.Config{
-		Location: &tail.SeekInfo{Whence: io.SeekEnd},
-		ReOpen:   true,
-		Follow:   true,
-		Poll:     *tailPoll,
-		Logger:   logger,
+		Location:      &tail.SeekInfo{Whence: io.SeekEnd},
+		ReOpen:        true,
+		Follow:        true,
+		CompleteLines: true,
+		Poll:          *tailPoll,
+		Logger:        logger,
 	})
 	if err != nil {
 		_ = level.Error(e.logger).Log("msg", "Unable to open log", "err", err)
