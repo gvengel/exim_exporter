@@ -1,0 +1,30 @@
+1rZeE0-00GmsY-CG-H
+Debian-exim 115 120
+<>
+1707774748 0
+-received_time_usec .380417
+-ident Debian-exim
+-received_protocol local
+-body_linecount 1463
+-max_received_linelength 431
+-allow_unqualified_recipient
+-allow_unqualified_sender
+-frozen 1707774748
+-localerror
+XX
+1
+postmaster@junk.bogus
+
+203P Received: from Debian-exim by mta.bogus with local (Exim 4.93)
+	id 1rZeE0-00GmsY-CG
+	for postmaster@junk.bogus; Mon, 12 Feb 2024 13:52:28 -0800
+047  X-Failed-Recipients: name@domain.bogus
+029  Auto-Submitted: auto-replied
+074F From: Mail Delivery System <Mailer-Daemon@mta.bogus>
+064T To: postmaster@junk.bogus
+095  References: <20240212215224.2cf1cc2f00deb8af@junk.bogus>
+099  Content-Type: multipart/report; report-type=delivery-status; boundary=1707774748-eximdsn-313216551
+018  MIME-Version: 1.0
+059  Subject: Mail delivery failed: returning message to sender
+063I Message-Id: <E1rZeE0-00GmsY-CG@mta.bogus>
+038  Date: Mon, 12 Feb 2024 13:52:28 -0800

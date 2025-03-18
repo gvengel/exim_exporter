@@ -1,0 +1,36 @@
+1ra7OS-004XaW-CD-H
+Debian-exim 115 120
+<>
+1707886872 0
+-received_time_usec .378574
+--helo_name host.bogus
+-host_address 192.0.0.1.58573
+--host_name host.bogus
+-interface_address 10.0.0.1.25
+-received_protocol esmtp
+-body_linecount 1548
+-max_received_linelength 442
+XX
+1
+mailer@mail.bogus
+
+190P Received: from host.bogus ([192.0.0.1])
+	by mta.bogus with esmtp (Exim 4.93)
+	id 1ra7OS-004XaW-CD
+	for mailer@mail.bogus; Tue, 13 Feb 2024 21:01:12 -0800
+142P Received: from host.bogus (127.0.0.1) id hph4hg0171s7 for <mailer@mail.bogus>; Tue, 13 Feb 2024 21:01:12 -0800 (envelope-from <>)
+191P Received: from mua.bogus ([172.16.0.1])
+	by host.bogus ([192.0.0.1]) (MailerMcMailFace)
+	with ESMTP id o202402140501110019914-5; Tue, 13 Feb 2024 21:01:11 -0800
+018  MIME-Version: 1.0
+037F From: <postmaster@home.bogus
+028T To: <mailer@mail.bogus>
+038  Date: Tue, 13 Feb 2024 21:01:11 -0800
+110  Content-Type: multipart/report; report-type=delivery-status;
+	boundary="eda25905-ba5c-428e-a413-ba4622d17786"
+024  Content-Language: en-US
+071I Message-ID: <a36c44ec-d4cc-445b-87a1-6680256dd438@mua.bogus>
+073  In-Reply-To: <4uma9f02bxrz.Fg5GHySA05-VCxRPJ9K2cw2@mail.bogus>
+072  References: <4uma9f02bxrz.Fg5GHySA05-VCxRPJ9K2cw2@mail.bogus>
+119  Subject: bogus
+029  Auto-Submitted: auto-replied
